@@ -260,6 +260,19 @@ class Enemy {
       },
     });
   }
+
+  refreshPetrification() {
+    if (!this.petrified || this.sunkInWater) return;
+    this._stopAlertEffects();
+    this._drawPetrified();
+    const p = this.scene.add.graphics();
+    p.setPosition(this.gfx.x, this.gfx.y);
+    p.lineStyle(4, 0x00ffff, 1);
+    p.strokeCircle(0, 0, TILE_SIZE / 2);
+    p.setDepth(15);
+    this.scene.tweens.add({ targets: p, scale: 2, alpha: 0, duration: 400, onComplete: () => p.destroy() });
+    this._petrifyTimer = this.scene.time.delayedCall(10000, () => this._startAlert());
+  }
   // ── Phase d'alerte (secondes 10→20) ────────────────────────────────────────
   _startAlert() {
     if (!this.petrified || this.sunkInWater) return;

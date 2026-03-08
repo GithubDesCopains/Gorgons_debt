@@ -48,14 +48,27 @@ class PetrifyRay {
         return;
       }
 
-      // Ennemi vivant → pétrifier et arrêter
-      const enemy = this.scene.enemies.find(
-        e => e.gridX === x && e.gridY === y && !e.petrified
-      );
+      // Obstacles (StoneColumn, Spawner) → stop sur la case précédente
+      const isObstacle = this.scene.stoneColumns?.some(c => c.gridX === x && c.gridY === y)
+        || this.scene.spawners?.some(s => s.gridX === x && s.gridY === y);
+
+      if (isObstacle) {
+        const endPx = gridToPixel(x - dx, y - dy);
+        this.segments.push({ x1: startPx.x, y1: startPx.y, x2: endPx.x, y2: endPx.y });
+        return;
+      }
+
+      // Ennemi → pétrifier (si vivant) ou rafraîchir (si déjà pierre) et arrêter
+      const enemy = this.scene.enemies.find(e => e.gridX === x && e.gridY === y);
       if (enemy) {
         const endPx = gridToPixel(x, y);
         this.segments.push({ x1: startPx.x, y1: startPx.y, x2: endPx.x, y2: endPx.y });
-        enemy.petrify();
+
+        if (!enemy.petrified) {
+          enemy.petrify();
+        } else {
+          enemy.refreshPetrification();
+        }
         return;
       }
 
