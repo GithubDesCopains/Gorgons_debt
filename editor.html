@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Gorgon's Debt – Level Editor</title>
+    <link rel="icon" href="data:," />
+    <style>
+        /* ── Reset & Base ──────────────────────────────────────────────────────── */
+        *,
+        *::before,
+        *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-app: #0e0f13;
+            --bg-panel: #16181f;
+            --bg-card: #1e2130;
+            --bg-hover: #252840;
+            --accent: #5b9bd5;
+            --accent2: #d4af37;
+            --danger: #c0392b;
+            --success: #27ae60;
+            --text: #d4d8e8;
+            --text-dim: #7a7f99;
+            --border: #2a2d40;
+            --radius: 8px;
+            --font: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg-app);
+            color: var(--text);
+            font-family: var(--font);
+        }
+
+        /* ── Layout ────────────────────────────────────────────────────────────── */
+        #app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Header */
+        #header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            gap: 12px;
+        }
+
+        #header h1 {
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: .05em;
+            color: var(--accent2);
+            white-space: nowrap;
+        }
+
+        #header h1 span {
+            color: var(--text-dim);
+            font-weight: 400;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        /* Buttons */
+        button {
+            cursor: pointer;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            background: var(--bg-card);
+            color: var(--text);
+            font-family: var(--font);
+            font-size: 13px;
+            padding: 6px 14px;
+            transition: background .15s, border-color .15s;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+        }
+
+        button.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        button.primary:hover {
+            background: #4a8cc4;
+        }
+
+        button.success {
+            background: var(--success);
+            border-color: var(--success);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        /* Size inputs */
+        .size-control {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .size-control input {
+            width: 54px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            border-radius: 5px;
+            padding: 4px 6px;
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .size-control input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        /* Body */
+        #body {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* ── Sidebar ───────────────────────────────────────────────────────────── */
+        #sidebar {
+            width: 92px;
+            flex-shrink: 0;
+            background: var(--bg-panel);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            padding: 10px 8px;
+            overflow-y: auto;
+        }
+
+        .tool-section-label {
+            font-size: 10px;
+            letter-spacing: .08em;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            padding: 6px 4px 2px;
+            font-weight: 600;
+        }
+
+        .tool-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 8px 4px;
+            border-radius: var(--radius);
+            cursor: pointer;
+            border: 1.5px solid transparent;
+            background: transparent;
+            color: var(--text);
+            font-size: 11px;
+            font-family: var(--font);
+            transition: background .12s, border-color .12s;
+            text-align: center;
+            width: 100%;
+        }
+
+        .tool-btn:hover {
+            background: var(--bg-card);
+            border-color: var(--border);
+        }
+
+        .tool-btn.active {
+            background: var(--bg-hover);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .tool-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        /* tool color swatches */
+        .ti-floor {
+            background: #3a2e1e;
+            border: 1px solid #5a4a32;
+        }
+
+        .ti-wall {
+            background: #1a1a2e;
+            border: 1px solid #2a2a50;
+        }
+
+        .ti-water {
+            background: #0d47a1;
+            border: 1px solid #1565c0;
+        }
+
+        .ti-mirA {
+            background: #1a1610;
+            border: 1px solid #d4af37;
+            color: #d4af37;
+            font-weight: 900;
+            font-size: 22px;
+        }
+
+        .ti-mirB {
+            background: #1a1610;
+            border: 1px solid #d4af37;
+            color: #d4af37;
+            font-weight: 900;
+            font-size: 22px;
+        }
+
+        .ti-spring {
+            background: #2e1e0a;
+            border: 1px solid #e67e22;
+        }
+
+        .ti-enemy {
+            background: #2e0d0a;
+            border: 1px solid #c0392b;
+        }
+
+        .ti-player {
+            background: #0d1a2e;
+            border: 1px solid #5b9bd5;
+        }
+
+        .ti-exit {
+            background: #0a2e10;
+            border: 1px solid #27ae60;
+        }
+
+        .sep {
+            height: 1px;
+            background: var(--border);
+            margin: 4px 0;
+        }
+
+        #zoom-display {
+            font-size: 12px;
+            color: var(--text-dim);
+            text-align: center;
+            margin-top: 4px;
+        }
+
+        .zoom-row {
+            display: flex;
+            gap: 4px;
+        }
+
+        .zoom-row button {
+            flex: 1;
+            padding: 4px;
+            font-size: 14px;
+        }
+
+        /* ── Canvas area ───────────────────────────────────────────────────────── */
+        #canvas-wrap {
+            flex: 1;
+            overflow: auto;
+            position: relative;
+            background: repeating-conic-gradient(#111318 0% 25%, #0e0f13 0% 50%) 0 0 / 20px 20px;
+            cursor: crosshair;
+        }
+
+        #grid-canvas {
+            display: block;
+            image-rendering: pixelated;
+        }
+
+        /* ── Status bar ────────────────────────────────────────────────────────── */
+        #statusbar {
+            padding: 5px 16px;
+            background: var(--bg-panel);
+            border-top: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--text-dim);
+            display: flex;
+            gap: 20px;
+            flex-shrink: 0;
+        }
+
+        #statusbar span b {
+            color: var(--text);
+        }
+
+        /* ── Toast ─────────────────────────────────────────────────────────────── */
+        #toast {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--success);
+            color: #fff;
+            border-radius: 8px;
+            padding: 10px 22px;
+            font-size: 14px;
+            font-weight: 600;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity .25s;
+            z-index: 1000;
+        }
+
+        #toast.show {
+            opacity: 1;
+        }
+
+        /* scrollbars */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--bg-panel);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3a3d55;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+
+        <!-- ── Header ─────────────────────────────────────────────────────────── -->
+        <div id="header">
+            <h1>GORGON'S DEBT <span>– Level Editor</span></h1>
+
+            <div class="header-controls">
+                <div class="size-control">
+                    <label>W</label><input type="number" id="inp-w" value="40" min="4" max="200" />
+                    <label>H</label><input type="number" id="inp-h" value="30" min="4" max="200" />
+                    <button id="btn-resize">Resize</button>
+                </div>
+                <button id="btn-clear">Effacer tout</button>
+                <button id="btn-copy" class="primary">📋 Copier le JSON</button>
+            </div>
+        </div>
+
+        <!-- ── Body ──────────────────────────────────────────────────────────── -->
+        <div id="body">
+
+            <!-- Sidebar -->
+            <div id="sidebar">
+                <div class="tool-section-label">Tuiles</div>
+
+                <button class="tool-btn" data-tool="floor" title="Sol (gomme)">
+                    <div class="tool-icon ti-floor">·</div>Sol
+                </button>
+                <button class="tool-btn active" data-tool="wall" title="Mur">
+                    <div class="tool-icon ti-wall">▪</div>Mur
+                </button>
+                <button class="tool-btn" data-tool="water" title="Eau">
+                    <div class="tool-icon ti-water">〜</div>Eau
+                </button>
+
+                <div class="sep"></div>
+                <div class="tool-section-label">Entités</div>
+
+                <button class="tool-btn" data-tool="springU" title="Ressort Haut">
+                    <div class="tool-icon ti-spring">⇑</div>Ressort Haut
+                </button>
+                <button class="tool-btn" data-tool="springD" title="Ressort Bas">
+                    <div class="tool-icon ti-spring">⇓</div>Ressort Bas
+                </button>
+                <button class="tool-btn" data-tool="springL" title="Ressort Gauche">
+                    <div class="tool-icon ti-spring">⇐</div>Ressort Gauche
+                </button>
+                <button class="tool-btn" data-tool="springR" title="Ressort Droite">
+                    <div class="tool-icon ti-spring">⇒</div>Ressort Droite
+                </button>
+
+                <button class="tool-btn" data-tool="mirrorA" title="Miroir / (montant)">
+                    <div class="tool-icon ti-mirA">/</div>Miroir /
+                </button>
+                <button class="tool-btn" data-tool="mirrorB" title="Miroir \ (descendant)">
+                    <div class="tool-icon ti-mirB">\</div>Miroir \
+                </button>
+                <button class="tool-btn" data-tool="hammerCW" title="Marteau Horaire (3x3)">
+                    <div class="tool-icon"
+                        style="background:#2a2e35;border:1px solid #5a6370;color:#a3b1c6;font-size:20px;">↻</div>Marteau
+                    ↻
+                </button>
+                <button class="tool-btn" data-tool="hammerCCW" title="Marteau Anti-Horaire (3x3)">
+                    <div class="tool-icon"
+                        style="background:#2a2e35;border:1px solid #5a6370;color:#a3b1c6;font-size:20px;">↺</div>Marteau
+                    ↺
+                </button>
+                <button class="tool-btn" data-tool="enemy" title="Ennemi">
+                    <div class="tool-icon ti-enemy">◆</div>Ennemi
+                </button>
+                <button class="tool-btn" data-tool="player" title="Joueur (spawn)">
+                    <div class="tool-icon ti-player">☺</div>Joueur
+                </button>
+                <button class="tool-btn" data-tool="exit" title="Sortie">
+                    <div class="tool-icon ti-exit">🚪</div>Sortie
+                </button>
+                <button class="tool-btn" data-tool="item" title="Éclat de Miroir (collectible)">
+                    <div class="tool-icon ti-item">💎</div>Éclat
+                </button>
+                <button class="tool-btn" data-tool="spawner" title="Point d'invocation ennemi">
+                    <div class="tool-icon ti-spawner">🔷</div>Spawner
+                </button>
+
+                <div class="sep"></div>
+                <div class="tool-section-label">Zoom</div>
+                <div class="zoom-row">
+                    <button id="btn-zoom-out" title="Zoom arrière (-)">−</button>
+                    <button id="btn-zoom-in" title="Zoom avant (+)">+</button>
+                </div>
+                <div id="zoom-display">100%</div>
+            </div>
+
+            <!-- Canvas -->
+            <div id="canvas-wrap">
+                <canvas id="grid-canvas"></canvas>
+            </div>
+
+        </div><!-- /body -->
+
+        <!-- Status bar -->
+        <div id="statusbar">
+            <span>Grille : <b id="st-size">40 × 30</b></span>
+            <span>Curseur : <b id="st-pos">–</b></span>
+            <span>Outil : <b id="st-tool">Mur</b></span>
+            <span>Molette = zoom · Clic droit = Effacer</span>
+        </div>
+
+    </div><!-- /app -->
+
+    <div id="toast">✓ JSON copié dans le presse-papier !</div>
+
+    <script>
+        // ─────────────────────────────────────────────────────────────────────────
+        //  CONSTANTES & ÉTAT
+        // ─────────────────────────────────────────────────────────────────────────
+
+        const TILE = { FLOOR: 0, WALL: 1, WATER: 2 };
+        const ENTITY_TOOLS = new Set(['springU', 'springD', 'springL', 'springR', 'mirrorA', 'mirrorB', 'hammerU', 'hammerD', 'hammerL', 'hammerR', 'enemy', 'player', 'exit', 'item', 'spawner']);
+
+        const TILE_COLORS = {
+            0: '#3a2e1e',  // sol
+            1: '#1a1a2e',  // mur
+            2: '#0d47a1',  // eau
+        };
+        const TILE_BORDER = {
+            0: '#4a3e2e',
+            1: '#2a2a50',
+            2: '#1565c0',
+        };
+        const ENTITY_RENDER = {
+            springU: { bg: '#2e1e0a', fill: '#e67e22', label: '⇑' },
+            springD: { bg: '#2e1e0a', fill: '#e67e22', label: '⇓' },
+            springL: { bg: '#2e1e0a', fill: '#e67e22', label: '⇐' },
+            springR: { bg: '#2e1e0a', fill: '#e67e22', label: '⇒' },
+            mirrorA: { bg: '#1a1610', line: '#d4af37', label: '/' },
+            mirrorB: { bg: '#1a1610', line: '#d4af37', label: '\\' },
+            hammerU: { bg: '#2a2e35', fill: '#a3b1c6', label: '^' },
+            hammerD: { bg: '#2a2e35', fill: '#a3b1c6', label: 'v' },
+            hammerL: { bg: '#2a2e35', fill: '#a3b1c6', label: '<' },
+            hammerR: { bg: '#2a2e35', fill: '#a3b1c6', label: '>' },
+            enemy: { bg: '#2e0d0a', fill: '#c0392b', label: '◆' },
+            player: { bg: '#0d1a2e', fill: '#5b9bd5', label: '☺' },
+            exit: { bg: '#0a2e10', fill: '#27ae60', label: '▶' },
+            item: { bg: '#001e2e', fill: '#00d4ff', label: '💎' },
+            spawner: { bg: '#1a0a2e', fill: '#9b59b6', label: '🔷' },
+        };
+        const TOOL_LABELS = {
+            floor: 'Sol', wall: 'Mur', water: 'Eau',
+            springU: 'Ressort Haut', springD: 'Ressort Bas',
+            springL: 'Ressort Gauche', springR: 'Ressort Droite',
+            mirrorA: 'Miroir /', mirrorB: 'Miroir \\',
+            hammerU: 'Marteau Haut', hammerD: 'Marteau Bas',
+            hammerL: 'Marteau Gauche', hammerR: 'Marteau Droite',
+            enemy: 'Ennemi', player: 'Joueur', exit: 'Sortie',
+            item: 'Éclat de Miroir', spawner: 'Spawner',
+        };
+
+        // State
+        let cols = 40, rows = 30;
+        let map = [];   // map[row][col]  = TILE.*
+        let entities = [];   // entities[row][col] = null | {type}
+        let cellSize = 18;   // px par case
+        let currentTool = 'wall';
+        let isPainting = false;
+
+        const canvas = document.getElementById('grid-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // ─────────────────────────────────────────────────────────────────────────
+        //  INITIALISATION DE LA GRILLE
+        // ─────────────────────────────────────────────────────────────────────────
+
+        function initGrid(w, h) {
+            cols = w; rows = h;
+            // map : tout à FLOOR par défaut
+            map = Array.from({ length: h }, () => Array(w).fill(TILE.FLOOR));
+            // entités : tout null
+            entities = Array.from({ length: h }, () => Array(w).fill(null));
+            resizeCanvas();
+            render();
+            updateStatusSize();
+        }
+
+        function resizeCanvas() {
+            canvas.width = cols * cellSize;
+            canvas.height = rows * cellSize;
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        //  RENDU
+        // ─────────────────────────────────────────────────────────────────────────
+
+        function render() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    drawCell(c, r);
+                }
+            }
+        }
+
+        function drawCell(c, r) {
+            const x = c * cellSize;
+            const y = r * cellSize;
+            const s = cellSize;
+            const t = map[r][c];
+            const e = entities[r][c];
+
+            // ── fond tuile ──
+            ctx.fillStyle = TILE_COLORS[t];
+            ctx.fillRect(x, y, s, s);
+
+            // ── texture eau ──
+            if (t === TILE.WATER && s >= 8) {
+                ctx.fillStyle = 'rgba(21,101,192,0.5)';
+                ctx.fillRect(x + 2, y + 3, s * 0.55, Math.max(1, s * 0.12));
+                ctx.fillRect(x + 2, y + s * 0.62, s * 0.4, Math.max(1, s * 0.1));
+            }
+
+            // ── ombrage mur ──
+            if (t === TILE.WALL && s >= 8) {
+                ctx.fillStyle = 'rgba(0,0,0,0.35)';
+                ctx.fillRect(x + s - 2, y, 2, s);
+                ctx.fillRect(x, y + s - 2, s, 2);
+                ctx.fillStyle = 'rgba(255,255,255,0.06)';
+                ctx.fillRect(x, y, s, 2);
+                ctx.fillRect(x, y, 2, s);
+            }
+
+            // ── entité ──
+            if (e) {
+                const er = ENTITY_RENDER[e.type];
+                if (er) {
+                    if (s >= 8) {
+                        const pad = Math.max(1, s * 0.12);
+                        ctx.fillStyle = er.bg;
+                        ctx.fillRect(x + pad, y + pad, s - pad * 2, s - pad * 2);
+                    }
+                    if (e.type === 'mirrorA' || e.type === 'mirrorB') {
+                        // Ligne miroir
+                        ctx.strokeStyle = '#d4af37';
+                        ctx.lineWidth = Math.max(1.5, s * 0.1);
+                        ctx.lineCap = 'round';
+                        const p = s * 0.18;
+                        ctx.beginPath();
+                        if (e.type === 'mirrorA') {
+                            ctx.moveTo(x + s - p, y + p);
+                            ctx.lineTo(x + p, y + s - p);
+                        } else {
+                            ctx.moveTo(x + p, y + p);
+                            ctx.lineTo(x + s - p, y + s - p);
+                        }
+                        ctx.stroke();
+                    } else if (e.type.startsWith('hammer')) {
+                        // Dessiner une indication du bras
+                        ctx.fillStyle = 'rgba(163, 177, 198, 0.4)';
+                        if (e.type === 'hammerU') ctx.fillRect(x, y - s, s, s);
+                        if (e.type === 'hammerD') ctx.fillRect(x, y + s, s, s);
+                        if (e.type === 'hammerL') ctx.fillRect(x - s, y, s, s);
+                        if (e.type === 'hammerR') ctx.fillRect(x + s, y, s, s);
+                        // Pivot central
+                        ctx.fillStyle = '#2a2e35';
+                        ctx.fillRect(x, y, s, s);
+                        ctx.strokeStyle = '#5a6370';
+                        ctx.strokeRect(x, y, s, s);
+                    } else if (s >= 10) {
+                        // Emoji / symbole centré
+                        const fs = Math.max(8, s * 0.52);
+                        ctx.fillStyle = er.fill;
+                        ctx.font = `${fs}px sans-serif`;
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(er.label, x + s / 2, y + s / 2 + 0.5);
+                    }
+                }
+            }
+
+            // ── grille ──
+            if (s >= 6) {
+                ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+                ctx.lineWidth = 0.5;
+                ctx.strokeRect(x, y, s, s);
+            }
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        //  PEINTURE
+        // ─────────────────────────────────────────────────────────────────────────
+
+        function cellFromEvent(e) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const c = Math.floor((e.clientX - rect.left) * scaleX / cellSize);
+            const r = Math.floor((e.clientY - rect.top) * scaleY / cellSize);
+            return { c, r };
+        }
+
+        function paint(c, r, erase) {
+            if (c < 0 || c >= cols || r < 0 || r >= rows) return;
+
+            if (erase) {
+                // Clic droit → effacer : sol + supprimer entité
+                map[r][c] = TILE.FLOOR;
+                entities[r][c] = null;
+                drawCell(c, r);
+                return;
+            }
+
+            const tool = currentTool;
+
+            if (ENTITY_TOOLS.has(tool)) {
+                // Si outil "unique" (player, exit) → retirer l'ancien exemplaire
+                if (tool === 'player' || tool === 'exit') {
+                    for (let rr = 0; rr < rows; rr++)
+                        for (let cc = 0; cc < cols; cc++)
+                            if (entities[rr][cc]?.type === tool) { entities[rr][cc] = null; drawCell(cc, rr); }
+                }
+                // Placer l'entité, tuile en dessous = floor
+                map[r][c] = TILE.FLOOR;
+                entities[r][c] = { type: tool };
+            } else {
+                // Tuile : effacer l'entité sur cette case
+                entities[r][c] = null;
+                map[r][c] = tool === 'floor' ? TILE.FLOOR
+                    : tool === 'wall' ? TILE.WALL
+                        : TILE.WATER;
+            }
+            drawCell(c, r);
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        //  ZOOM
+        // ─────────────────────────────────────────────────────────────────────────
+
+        const CELL_SIZES = [4, 6, 8, 10, 12, 14, 16, 18, 22, 26, 32, 40, 48];
+
+        function zoomTo(newSize) {
+            const wrap = document.getElementById('canvas-wrap');
+            // Garder le centre visible
+            const cx = (wrap.scrollLeft + wrap.clientWidth / 2) / (cols * cellSize);
+            const cy = (wrap.scrollTop + wrap.clientHeight / 2) / (rows * cellSize);
+
+            cellSize = Math.max(4, Math.min(48, newSize));
+            resizeCanvas();
+            render();
+
+            wrap.scrollLeft = cx * cols * cellSize - wrap.clientWidth / 2;
+            wrap.scrollTop = cy * rows * cellSize - wrap.clientHeight / 2;
+
+            document.getElementById('zoom-display').textContent =
+                Math.round(cellSize / 18 * 100) + '%';
+        }
+
+        function zoomStep(dir) {
+            const idx = CELL_SIZES.indexOf(cellSize);
+            if (dir > 0 && idx < CELL_SIZES.length - 1) zoomTo(CELL_SIZES[idx + 1]);
+            if (dir < 0 && idx > 0) zoomTo(CELL_SIZES[idx - 1]);
+            // fallback si pas exactement dans le tableau
+            if (idx === -1) zoomTo(dir > 0 ? cellSize + 2 : cellSize - 2);
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        //  JSON EXPORT
+        // ─────────────────────────────────────────────────────────────────────────
+
+        function buildJSON() {
+            const ents = [];
+            for (let r = 0; r < rows; r++) {
+                for (let c = 0; c < cols; c++) {
+                    const e = entities[r][c];
+                    if (!e) continue;
+                    const entry = { type: e.type, x: c, y: r };
+                    if (e.type.startsWith('spring')) {
+                        entry.type = 'spring';
+                        entry.orientation = e.type.replace('spring', '');
+                    }
+                    if (e.type === 'mirrorA') entry.orientation = '/';
+                    if (e.type === 'mirrorB') entry.orientation = '\\';
+                    if (e.type.startsWith('hammer')) {
+                        entry.type = 'hammer';
+                        entry.orientation = e.type.replace('hammer', '');
+                    }
+                    ents.push(entry);
+                }
+            }
+            return {
+                width: cols,
+                height: rows,
+                entities: ents,
+                map: map.map(row => [...row]),
+            };
+        }
+
+        function copyJSON() {
+            const data = JSON.stringify(buildJSON(), null, 2);
+            navigator.clipboard.writeText(data).then(() => {
+                showToast('\u2713 JSON copié dans le presse-papier !', '#27ae60');
+            }).catch(() => {
+                const ta = document.createElement('textarea');
+                ta.value = data;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                ta.remove();
+                showToast('\u2713 JSON copié dans le presse-papier !', '#27ae60');
+            });
+        }
+
+        // Toast helper (color paramétrable)
+        function showToast(msg, color) {
+            const t = document.getElementById('toast');
+            t.textContent = msg;
+            t.style.background = color || '#27ae60';
+            t.classList.add('show');
+            clearTimeout(t._timer);
+            t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        //  STATUS BAR
+        // ─────────────────────────────────────────────────────────────────────────
+
+        function updateStatusSize() {
+            document.getElementById('st-size').textContent = `${cols} × ${rows}`;
+        }
+
+        function updateStatusPos(c, r) {
+            document.getElementById('st-pos').textContent =
+                (c >= 0 && c < cols && r >= 0 && r < rows) ? `(${c}, ${r})` : '–';
+        }
+
+        // ─────────────────────────────────────────────────────────────────────────
+        //  EVENTS
+        // ─────────────────────────────────────────────────────────────────────────
+
+        // Tool buttons
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentTool = btn.dataset.tool;
+                document.getElementById('st-tool').textContent = TOOL_LABELS[currentTool] || currentTool;
+            });
+        });
+
+        // Canvas mouse
+        canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+        canvas.addEventListener('mousedown', e => {
+            isPainting = true;
+            const { c, r } = cellFromEvent(e);
+            paint(c, r, e.button === 2);
+        });
+
+        canvas.addEventListener('mousemove', e => {
+            const { c, r } = cellFromEvent(e);
+            updateStatusPos(c, r);
+            if (!isPainting) return;
+            paint(c, r, e.buttons === 2);
+        });
+
+        canvas.addEventListener('mouseup', () => { isPainting = false; });
+        canvas.addEventListener('mouseleave', () => { isPainting = false; updateStatusPos(-1, -1); });
+
+        // Wheel zoom
+        document.getElementById('canvas-wrap').addEventListener('wheel', e => {
+            e.preventDefault();
+            zoomStep(e.deltaY < 0 ? 1 : -1);
+        }, { passive: false });
+
+        // Zoom buttons
+        document.getElementById('btn-zoom-in').addEventListener('click', () => zoomStep(1));
+        document.getElementById('btn-zoom-out').addEventListener('click', () => zoomStep(-1));
+
+        // Resize grid
+        document.getElementById('btn-resize').addEventListener('click', () => {
+            const w = parseInt(document.getElementById('inp-w').value, 10);
+            const h = parseInt(document.getElementById('inp-h').value, 10);
+            if (isNaN(w) || isNaN(h) || w < 4 || h < 4 || w > 200 || h > 200) return;
+
+            // Préserver le contenu existant dans la nouvelle grille
+            const oldMap = map;
+            const oldEntities = entities;
+            const oldCols = cols;
+            const oldRows = rows;
+
+            cols = w;
+            rows = h;
+            map = Array.from({ length: h }, (_, r) =>
+                Array.from({ length: w }, (_, c) =>
+                    (r < oldRows && c < oldCols) ? oldMap[r][c] : TILE.FLOOR
+                )
+            );
+            entities = Array.from({ length: h }, (_, r) =>
+                Array.from({ length: w }, (_, c) =>
+                    (r < oldRows && c < oldCols) ? oldEntities[r][c] : null
+                )
+            );
+            resizeCanvas();
+            render();
+            updateStatusSize();
+            showToast(`Grille redimensionnée : ${w} × ${h}`, '#5b9bd5');
+        });
+
+        // Clear
+        document.getElementById('btn-clear').addEventListener('click', () => {
+            initGrid(cols, rows);
+            showToast('Grille effacée', '#c0392b');
+        });
+
+        // Copy JSON
+        document.getElementById('btn-copy').addEventListener('click', copyJSON);
+
+        // Keyboard shortcuts
+        window.addEventListener('keydown', e => {
+            if (e.target.tagName === 'INPUT') return;
+            const shortcuts = {
+                'f': 'floor', 'w': 'wall', 'a': 'water',
+                '1': 'mirrorA', '2': 'mirrorB',
+                'e': 'enemy', 'p': 'player', 'x': 'exit',
+                '+': () => zoomStep(1), '=': () => zoomStep(1), '-': () => zoomStep(-1),
+            };
+            const action = shortcuts[e.key.toLowerCase()];
+            if (!action) return;
+            if (typeof action === 'function') { action(); return; }
+            const btn = document.querySelector(`.tool-btn[data-tool="${action}"]`);
+            if (btn) btn.click();
+        });
+
+        // ─────────────────────────────────────────────────────────────────────────
+        //  START
+        // ─────────────────────────────────────────────────────────────────────────
+        initGrid(40, 30);
+    </script>
+</body>
+
+</html>

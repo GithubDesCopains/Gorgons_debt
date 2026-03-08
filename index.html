@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gorgon's Debt – Prototype</title>
+  <link rel="icon" href="data:," />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: #0a0a0a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Phaser 3 depuis le CDN officiel -->
+  <script src="https://cdn.jsdelivr.net/npm/phaser@3.60.0/dist/phaser.min.js"></script>
+  <!-- Classes du jeu extraites -->
+  <script src="src/globals.js?v=5"></script>
+  <script src="src/Player.js?v=5"></script>
+  <script src="src/Enemy.js?v=5"></script>
+  <script src="src/Spawner.js?v=5"></script>
+  <script src="src/Mirror.js?v=5"></script>
+  <script src="src/PetrifyRay.js?v=5"></script>
+  <script src="src/Item.js?v=5"></script>
+  <script src="src/StoneColumn.js?v=5"></script>
+  <script src="src/Spring.js?v=5"></script>
+  <script src="src/HammerSpinner.js?v=5"></script>
+  <script src="src/ExitDoor.js?v=5"></script>
+  <!-- Logique principale du jeu -->
+  <script src="game.js?v=5"></script>
+</body>
+
+</html>
