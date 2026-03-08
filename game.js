@@ -49,7 +49,18 @@ class GameScene extends Phaser.Scene {
   create() {
     this._loadLevel(LEVEL_DATA);
     this._renderMap();
-    this._buildHUD();
+
+    // Lancement du HUD par-dessus le jeu
+    this.scene.launch('HUDScene');
+
+    // Initialiser le HUD avec les données du niveau
+    this.time.delayedCall(10, () => {
+      this.events.emit('updateHUD', {
+        itemsCollected: this.itemsCollected,
+        itemsTotal: this.itemsTotal
+      });
+    });
+
     this._setupCamera();
     this._setupInput();
     this.cameras.main.fadeIn(300);
@@ -189,29 +200,8 @@ class GameScene extends Phaser.Scene {
     }
   }
 
-  // ── HUD ────────────────────────────────────────────────────────────────────
-  _buildHUD() {
-    this.add.text(18, 14, "GORGON'S DEBT", {
-      fontFamily: 'monospace', fontSize: '18px', color: '#e0d0b0',
-      stroke: '#000', strokeThickness: 3,
-    }).setScrollFactor(0).setDepth(100);
+  // HUD déplacé dans HUDScene.js (piloté par événements)
 
-    this.add.text(18, 40, '← ↑ ↓ → déplacer  |  ESPACE tirer le rayon', {
-      fontFamily: 'monospace', fontSize: '13px', color: '#a09070',
-      stroke: '#000', strokeThickness: 2,
-    }).setScrollFactor(0).setDepth(100);
-
-    // Compteur d'éclats (cyan, mis à jour dynamiquement)
-    this._hudItemText = this.add.text(18, 60, this._itemCountText(), {
-      fontFamily: 'monospace', fontSize: '13px', color: '#00d4ff',
-      stroke: '#000', strokeThickness: 2,
-    }).setScrollFactor(0).setDepth(100);
-  }
-
-  _itemCountText() {
-    if (this.itemsTotal === 0) return '✓ Aucun éclat requis';
-    return `◆ Éclats : ${this.itemsCollected} / ${this.itemsTotal}`;
-  }
 
   // ── Caméra ─────────────────────────────────────────────────────────────────
   _setupCamera() {
@@ -599,7 +589,10 @@ class GameScene extends Phaser.Scene {
 
   onItemCollected() {
     this.itemsCollected++;
-    if (this._hudItemText) this._hudItemText.setText(this._itemCountText());
+    this.events.emit('updateHUD', {
+      itemsCollected: this.itemsCollected,
+      itemsTotal: this.itemsTotal
+    });
     this.cameras.main.flash(80, 0, 212, 255);  // flash cyan
     if (this.itemsCollected >= this.itemsTotal && this.exitDoor) {
       this.exitDoor.open();
@@ -656,7 +649,9 @@ class GameScene extends Phaser.Scene {
     this.cameras.main.flash(200, 180, 0, 0);
     this.time.delayedCall(1000, () => {
       this.cameras.main.fadeOut(400, 0, 0, 0);
-      this.cameras.main.once('camerafadeoutcomplete', () => this.scene.restart());
+      this.cameras.main.once('camerafadeoutcomplete', () => {
+        this.scene.restart();
+      });
     });
   }
 
@@ -691,10 +686,10 @@ class GameScene extends Phaser.Scene {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const config = {
-  type: Phaser.CANVAS,
-  backgroundColor: '#0a0a0a',
+  type: Phaser.AUTO,
+  backgroundColor: '#050505',
   physics: { default: 'arcade' },
-  scene: [GameScene],
+  scene: [MenuScene, GameScene, HUDScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,
