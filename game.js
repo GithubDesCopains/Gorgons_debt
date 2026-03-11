@@ -38,15 +38,35 @@ class GameScene extends Phaser.Scene {
     this._hudItemText = null;
     this._mapGfx = null;
     this.keys = {}; // Pour stocker les touches d'input
+    this.currentLevelNumber = 1; // [SAVE]
+  }
+
+  // ── init ────────────────────────────────────────────────────────────────────
+  init(data) {
+    if (data && data.level) {
+      this.currentLevelNumber = data.level;
+    }
   }
 
   // ── preload ─────────────────────────────────────────────────────────────────
   preload() {
     this.load.image('spawner_ruins', 'spawner_ruins.png');
+    this.load.spritesheet('garden_soil', 'garden_soil.png', { frameWidth: 160, frameHeight: 160 });
+    this.load.spritesheet('bush_wall', 'bush_wall.png', { frameWidth: 160, frameHeight: 160 });
+    this.load.image('pusher_enemy', 'pusher_enemy.png');
+    this.load.image('basic_hero', 'basic_hero.png');
+
+    // Préchauffage des spritesheets du joueur (Dimensions affinées sans labels)
+    this.load.spritesheet('hero_idle_front', 'hero_idle_front.png', { frameWidth: 152, frameHeight: 182 });
+    this.load.spritesheet('hero_idle_back', 'hero_idle_back.png', { frameWidth: 160, frameHeight: 478 });
+    this.load.spritesheet('hero_idle_right', 'hero_idle_right.png', { frameWidth: 160, frameHeight: 478 });
+    this.load.spritesheet('hero_idle_left', 'hero_idle_left.png', { frameWidth: 160, frameHeight: 478 });
   }
 
   // ── create ──────────────────────────────────────────────────────────────────
   create() {
+    this._initHeroAnimations();
+
     this._loadLevel(LEVEL_DATA);
     this._renderMap();
 
@@ -64,6 +84,58 @@ class GameScene extends Phaser.Scene {
     this._setupCamera();
     this._setupInput();
     this.cameras.main.fadeIn(300);
+
+    this._handleMusicTransition();
+  }
+
+  _handleMusicTransition() {
+    const titleMusic = this.sound.get('titleMusic');
+    if (titleMusic && titleMusic.isPlaying) {
+      this.tweens.add({
+        targets: titleMusic,
+        volume: 0,
+        duration: 2000,
+        onComplete: () => titleMusic.stop()
+      });
+    }
+
+    let gameMusic = this.sound.get('gameMusic');
+    const targetVolume = saveData.settings.musicVolume;
+
+    if (!gameMusic) {
+      gameMusic = this.sound.add('gameMusic', { loop: true, volume: 0 });
+    } else {
+      gameMusic.volume = 0;
+    }
+
+    if (!gameMusic.isPlaying) gameMusic.play({ loop: true });
+
+    this.tweens.add({
+      targets: gameMusic,
+      volume: targetVolume,
+      duration: 2000
+    });
+  }
+
+  _initHeroAnimations() {
+    // Création des 4 animations d'attente
+    const anims = [
+      { key: 'player-idle-down', texture: 'hero_idle_front' },
+      { key: 'player-idle-up', texture: 'hero_idle_back' },
+      { key: 'player-idle-right', texture: 'hero_idle_right' },
+      { key: 'player-idle-left', texture: 'hero_idle_left' },
+    ];
+
+    anims.forEach(anim => {
+      if (!this.anims.exists(anim.key)) {
+        this.anims.create({
+          key: anim.key,
+          frames: this.anims.generateFrameNumbers(anim.texture, { start: 0, end: 3 }),
+          frameRate: 6,
+          repeat: -1
+        });
+      }
+    });
   }
 
   // ── Chargement d'un niveau depuis un objet JSON ─────────────────────────────
@@ -84,6 +156,7 @@ class GameScene extends Phaser.Scene {
     this.springs = [];
     this.spinners = [];
     this.stoneColumns = [];
+    this.tileSprites = []; // Grille pour stocker les références aux sprites de fond
     this.exitDoor = null;
     this.itemsCollected = 0;
     this.itemsTotal = 0;
@@ -98,6 +171,11 @@ class GameScene extends Phaser.Scene {
     // ── Grille de tuiles ────────────────────────────────────────────────────
     // Le JSON map est [row][col] avec 0=sol, 1=mur, 2=eau
     this.map = data.map.map(row => [...row]);
+
+    // Initialiser la grille de sprites vide
+    for (let r = 0; r < GRID_ROWS; r++) {
+      this.tileSprites[r] = new Array(GRID_COLS).fill(null);
+    }
 
     // ── Entités ─────────────────────────────────────────────────────────────
     let playerSpawn = { x: 1, y: 1 };   // fallback si absent du JSON
@@ -134,6 +212,15 @@ class GameScene extends Phaser.Scene {
         case 'hammer':
           this.spinners.push(new HammerSpinner(this, e.x, e.y, e.orientation));
           break;
+        case 'pusher_enemy':
+          this.enemies.push(new PusherEnemy(this, e.x, e.y));
+          break;
+        case 'statue': {
+          const enemy = new Enemy(this, e.x, e.y);
+          enemy.petrify();
+          this.enemies.push(enemy);
+          break;
+        }
       }
     }
 
@@ -148,9 +235,9 @@ class GameScene extends Phaser.Scene {
 
   // ── Rendu global de la carte (initial) ──────────────────────────────────────
   _renderMap() {
-    // Fond
+    // Fond global Noir (pour éviter les trous si la grille a des espaces)
     const bg = this.add.graphics();
-    bg.fillStyle(COLOR.FLOOR, 1);
+    bg.fillStyle(0x000000, 1);
     bg.fillRect(0, 0, WORLD_W, WORLD_H);
     bg.setDepth(0);
 
@@ -176,25 +263,34 @@ class GameScene extends Phaser.Scene {
     const t = this.map[r][c];
     const g = this._mapGfx;
 
+    // Nettoyage du sprite existant à cette position
+    if (this.tileSprites[r][c]) {
+      this.tileSprites[r][c].destroy();
+      this.tileSprites[r][c] = null;
+    }
+
     if (t === TILE.WALL) {
-      g.fillStyle(COLOR.WALL, 1);
-      g.fillRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
-      g.fillStyle(COLOR.WALL_BORDER, 1);
-      g.fillRect(x, y, TILE_SIZE, 2);
-      g.fillRect(x, y + TILE_SIZE - 2, TILE_SIZE, 2);
-      g.fillRect(x, y, 2, TILE_SIZE);
-      g.fillRect(x + TILE_SIZE - 2, y, 2, TILE_SIZE);
+      const img = this.add.image(x, y, 'bush_wall', 5);
+      img.setOrigin(0, 0);
+      img.setDisplaySize(TILE_SIZE, TILE_SIZE);
+      img.setDepth(0.4);
+      this.tileSprites[r][c] = img;
     } else if (t === TILE.WATER) {
-      // [WATER]
+      // [WATER] - On utilise Graphics pour l'eau pour l'instant (ou un sprite si on en génère un)
       g.fillStyle(COLOR.WATER, 1);
       g.fillRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
       g.fillStyle(0x1565c0, 0.5);
       g.fillRect(x + 4, y + 4, TILE_SIZE / 2, 4);
     } else {
-      // FLOOR
-      g.fillStyle(COLOR.FLOOR, 1);
-      g.fillRect(x, y, TILE_SIZE, TILE_SIZE);
-      g.fillStyle(COLOR.GRID_LINE, 0.4);
+      // Une tuile sol = un sprite (Frame 5 = Row 2, Col 2)
+      const floorImg = this.add.image(x, y, 'garden_soil', 5);
+      floorImg.setOrigin(0, 0);
+      floorImg.setDisplaySize(TILE_SIZE, TILE_SIZE);
+      floorImg.setDepth(0.1);
+      this.tileSprites[r][c] = floorImg;
+
+      // Lignes de grille optionnelles
+      g.fillStyle(COLOR.GRID_LINE, 0.1);
       g.fillRect(x, y, TILE_SIZE, 1);
       g.fillRect(x, y, 1, TILE_SIZE);
     }
@@ -206,7 +302,7 @@ class GameScene extends Phaser.Scene {
   // ── Caméra ─────────────────────────────────────────────────────────────────
   _setupCamera() {
     this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
-    this.cameras.main.startFollow(this.player.gfx, true, 0.10, 0.10);
+    this.cameras.main.startFollow(this.player.sprite, true, 0.10, 0.10);
     this.cameras.main.setZoom(1.0);
   }
 
@@ -490,7 +586,7 @@ class GameScene extends Phaser.Scene {
           this.enemies = this.enemies.filter(e => e !== statue);
           statue.sink();
           this.map[seg.destY][seg.destX] = TILE.FLOOR;
-          this._drawTile(seg.destX, seg.destY);
+          this._redrawAllTiles();
           this._splashParticles(seg.destX, seg.destY);
           return; // The statue is destroyed, don't continue segments
         }
@@ -520,6 +616,7 @@ class GameScene extends Phaser.Scene {
     }
     if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
 
+    const sfxVol = saveData.settings.sfxVolume || 0.8;
     const osc = this.audioCtx.createOscillator();
     const gain = this.audioCtx.createGain();
     // Use an oscillator to generate a low frequency thump
@@ -531,7 +628,7 @@ class GameScene extends Phaser.Scene {
     osc.frequency.setValueAtTime(150, now);
     osc.frequency.exponentialRampToValueAtTime(10, now + 0.15); // Drop frequency fast
 
-    gain.gain.setValueAtTime(0.8, now);
+    gain.gain.setValueAtTime(0.8 * sfxVol, now);
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2); // Fade out fast
 
     osc.start(now);
@@ -544,6 +641,7 @@ class GameScene extends Phaser.Scene {
     }
     if (this.audioCtx.state === 'suspended') this.audioCtx.resume();
 
+    const sfxVol = saveData.settings.sfxVolume || 0.8;
     const osc = this.audioCtx.createOscillator();
     const gain = this.audioCtx.createGain();
     osc.type = 'triangle';
@@ -555,7 +653,7 @@ class GameScene extends Phaser.Scene {
     osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
 
     gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.5, now + 0.05);
+    gain.gain.linearRampToValueAtTime(0.5 * sfxVol, now + 0.05);
     gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
 
     osc.start(now);
@@ -638,6 +736,13 @@ class GameScene extends Phaser.Scene {
 
     this.tweens.add({ targets: [panel, title, sub], alpha: 1, duration: 400, ease: 'Quad.easeOut' });
 
+    // ── Sauvegarde de la progression ──
+    if (saveData.unlockedLevels <= this.currentLevelNumber) {
+      saveData.unlockedLevels = this.currentLevelNumber + 1;
+    }
+    saveData.totalGems += this.itemsCollected;
+    saveGame();
+
     this.time.delayedCall(2000, () => {
       cam.fadeOut(500, 0, 0, 0);
       cam.once('camerafadeoutcomplete', () => this.scene.restart());
@@ -689,7 +794,7 @@ const config = {
   type: Phaser.AUTO,
   backgroundColor: '#050505',
   physics: { default: 'arcade' },
-  scene: [MenuScene, GameScene, HUDScene],
+  scene: [MenuScene, LevelSelectScene, GameScene, HUDScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

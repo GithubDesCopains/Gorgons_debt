@@ -13,74 +13,109 @@ let WORLD_H = GRID_ROWS * TILE_SIZE;
 //  Remplacez ce bloc pour changer de niveau.
 // ─────────────────────────────────────────────────────────────────────────────
 const LEVEL_DATA = {
-  "width": 16,
-  "height": 16,
+  "width": 15,
+  "height": 15,
   "entities": [
     {
-      "type": "spawner",
-      "x": 10,
-      "y": 2
-    },
-    {
-      "type": "enemy",
-      "x": 10,
-      "y": 3
-    },
-    {
       "type": "exit",
-      "x": 13,
-      "y": 4
+      "x": 7,
+      "y": 1
     },
     {
-      "type": "hammer",
+      "type": "statue",
       "x": 4,
-      "y": 5,
-      "orientation": "R"
+      "y": 6
+    },
+    {
+      "type": "pusher_enemy",
+      "x": 1,
+      "y": 7
+    },
+    {
+      "type": "statue",
+      "x": 4,
+      "y": 7
     },
     {
       "type": "player",
-      "x": 10,
-      "y": 12
+      "x": 13,
+      "y": 7
+    },
+    {
+      "type": "statue",
+      "x": 4,
+      "y": 8
+    },
+    {
+      "type": "item",
+      "x": 2,
+      "y": 10
+    },
+    {
+      "type": "item",
+      "x": 12,
+      "y": 10
+    },
+    {
+      "type": "item",
+      "x": 2,
+      "y": 11
+    },
+    {
+      "type": "spawner",
+      "x": 5,
+      "y": 11
+    },
+    {
+      "type": "spawner",
+      "x": 9,
+      "y": 11
+    },
+    {
+      "type": "item",
+      "x": 12,
+      "y": 11
     }
   ],
   "map": [
     [
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
     ],
     [
+      2,
+      2,
+      2,
+      2,
+      2,
       0,
       0,
       0,
       0,
       0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0
+      2,
+      2,
+      2,
+      2,
+      2
     ],
     [
+      2,
+      2,
+      2,
       0,
       0,
       0,
@@ -90,15 +125,13 @@ const LEVEL_DATA = {
       0,
       0,
       0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0
+      2,
+      2,
+      2
     ],
     [
+      2,
+      2,
       0,
       0,
       0,
@@ -110,13 +143,12 @@ const LEVEL_DATA = {
       0,
       0,
       0,
-      0,
-      0,
-      0,
-      0,
-      0
+      2,
+      2
     ],
     [
+      2,
+      2,
       0,
       0,
       0,
@@ -128,31 +160,28 @@ const LEVEL_DATA = {
       0,
       0,
       0,
-      0,
-      0,
-      0,
-      0,
-      0
+      2,
+      2
     ],
     [
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
     ],
     [
+      2,
       0,
       0,
       0,
@@ -162,15 +191,14 @@ const LEVEL_DATA = {
       0,
       0,
       0,
+      2,
       0,
       0,
       0,
-      0,
-      0,
-      0,
-      0
+      2
     ],
     [
+      2,
       0,
       0,
       0,
@@ -180,15 +208,14 @@ const LEVEL_DATA = {
       0,
       0,
       0,
+      2,
       0,
       0,
       0,
-      0,
-      0,
-      0,
-      0
+      2
     ],
     [
+      2,
       0,
       0,
       0,
@@ -198,33 +225,32 @@ const LEVEL_DATA = {
       0,
       0,
       0,
+      2,
       0,
       0,
       0,
-      0,
-      0,
-      0,
-      0
+      2
     ],
     [
+      2,
+      2,
+      2,
+      2,
+      2,
       0,
       0,
       0,
       0,
       0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0
+      2,
+      2,
+      2,
+      2,
+      2
     ],
     [
+      2,
+      2,
       0,
       0,
       0,
@@ -236,13 +262,12 @@ const LEVEL_DATA = {
       0,
       0,
       0,
-      0,
-      0,
-      0,
-      0,
-      0
+      2,
+      2
     ],
     [
+      2,
+      2,
       0,
       0,
       0,
@@ -254,13 +279,13 @@ const LEVEL_DATA = {
       0,
       0,
       0,
-      0,
-      0,
-      0,
-      0,
-      0
+      2,
+      2
     ],
     [
+      2,
+      2,
+      2,
       0,
       0,
       0,
@@ -270,67 +295,43 @@ const LEVEL_DATA = {
       0,
       0,
       0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0
+      2,
+      2,
+      2
     ],
     [
+      2,
+      2,
+      2,
+      2,
+      2,
       0,
       0,
       0,
       0,
       0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0
+      2,
+      2,
+      2,
+      2,
+      2
     ],
     [
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0
-    ],
-    [
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0,
-      0
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2,
+      2
     ]
   ]
 };
@@ -361,3 +362,51 @@ const COLOR = {
 function gridToPixel(gx, gy) {
   return { x: gx * TILE_SIZE + TILE_SIZE / 2, y: gy * TILE_SIZE + TILE_SIZE / 2 };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  SYSTÈME DE SAUVEGARDE
+// ─────────────────────────────────────────────────────────────────────────────
+
+let saveData = {
+  unlockedLevels: 1,
+  totalGems: 0,
+  settings: {
+    musicVolume: 0.6,
+    sfxVolume: 0.8
+  }
+};
+
+const SAVE_KEY = "gorgons_debt_save";
+
+function saveGame() {
+  try {
+    const json = JSON.stringify(saveData);
+    localStorage.setItem(SAVE_KEY, json);
+    console.log("%c[SAVE] Jeu sauvegardé avec succès", "color: #00ffcc; font-weight: bold;", saveData);
+  } catch (e) {
+    console.error("[SAVE] Erreur lors de la sauvegarde :", e);
+  }
+}
+
+function loadGame() {
+  try {
+    const json = localStorage.getItem(SAVE_KEY);
+    if (json) {
+      const loaded = JSON.parse(json);
+      // Fusion récursive simple pour les settings
+      if (loaded.settings) {
+        saveData.settings = { ...saveData.settings, ...loaded.settings };
+        delete loaded.settings;
+      }
+      saveData = { ...saveData, ...loaded };
+      console.log("%c[SAVE] Sauvegarde chargée", "color: #00ffcc; font-weight: bold;", saveData);
+    } else {
+      console.log("[SAVE] Aucune sauvegarde trouvée, initialisation par défaut.");
+    }
+  } catch (e) {
+    console.error("[SAVE] Erreur lors du chargement :", e);
+  }
+}
+
+// Charger les données au démarrage
+loadGame();

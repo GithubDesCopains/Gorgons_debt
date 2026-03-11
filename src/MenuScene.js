@@ -10,6 +10,10 @@ class MenuScene extends Phaser.Scene {
     preload() {
         this.load.image('title_bg_sunny', 'title_bg_sunny.png');
         this.load.image('title_bg_dark', 'title_bg.png');
+
+        // Music preloading
+        this.load.audio('titleMusic', 'sound/The_Oracle_s_Ascent.mp3');
+        this.load.audio('gameMusic', 'sound/Echoes_of_the_Aegean_Lyre.mp3');
     }
 
     create() {
@@ -40,6 +44,19 @@ class MenuScene extends Phaser.Scene {
 
         // 5. Lancer la séquence dramatique
         this.time.delayedCall(1500, () => this._triggerStorm());
+
+        // 6. Jouer la musique du titre
+        if (!this.sound.get('titleMusic')) {
+            this.titleMusic = this.sound.add('titleMusic', {
+                loop: true,
+                volume: saveData.settings.musicVolume
+            });
+            this.titleMusic.play();
+        } else {
+            this.titleMusic = this.sound.get('titleMusic');
+            this.titleMusic.setVolume(saveData.settings.musicVolume);
+            if (!this.titleMusic.isPlaying) this.titleMusic.play();
+        }
     }
 
     _triggerStorm() {
@@ -111,7 +128,9 @@ class MenuScene extends Phaser.Scene {
 
     _createButtons() {
         const btnStart = this._makeButton(0, 0, "DÉMARRER", () => this._startGame());
-        const btnLevels = this._makeButton(0, 80, "NIVEAUX", () => console.log("Levels clicked"));
+        const btnLevels = this._makeButton(0, 80, "NIVEAUX", () => {
+            this.scene.start('LevelSelectScene');
+        });
 
         this.btnContainer.add([btnStart, btnLevels]);
     }
@@ -170,9 +189,10 @@ class MenuScene extends Phaser.Scene {
         }
         const osc = this.audioCtx.createOscillator();
         const gain = this.audioCtx.createGain();
+        const sfxVol = saveData.settings.sfxVolume || 0.8;
         osc.type = type;
         osc.frequency.setValueAtTime(freq, this.audioCtx.currentTime);
-        gain.gain.setValueAtTime(volume, this.audioCtx.currentTime);
+        gain.gain.setValueAtTime(volume * sfxVol, this.audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, this.audioCtx.currentTime + duration);
         osc.connect(gain);
         gain.connect(this.audioCtx.destination);

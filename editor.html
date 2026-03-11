@@ -262,6 +262,17 @@
             border: 1px solid #27ae60;
         }
 
+        .ti-statue {
+            background: #455a64;
+            border: 1px solid #607d8b;
+        }
+
+        .ti-pusher {
+            background: #2e0d0a;
+            border: 1px solid #c0392b;
+            color: #ff4400;
+        }
+
         .sep {
             height: 1px;
             background: var(--border);
@@ -429,6 +440,9 @@
                 <button class="tool-btn" data-tool="enemy" title="Ennemi">
                     <div class="tool-icon ti-enemy">◆</div>Ennemi
                 </button>
+                <button class="tool-btn" data-tool="pusher_enemy" title="Ennemi Pousseur">
+                    <div class="tool-icon ti-pusher">♉</div>Pousseur
+                </button>
                 <button class="tool-btn" data-tool="player" title="Joueur (spawn)">
                     <div class="tool-icon ti-player">☺</div>Joueur
                 </button>
@@ -440,6 +454,9 @@
                 </button>
                 <button class="tool-btn" data-tool="spawner" title="Point d'invocation ennemi">
                     <div class="tool-icon ti-spawner">🔷</div>Spawner
+                </button>
+                <button class="tool-btn" data-tool="statue" title="Bloc (Ennemi pétrifié)">
+                    <div class="tool-icon ti-statue">🗿</div>Bloc
                 </button>
 
                 <div class="sep"></div>
@@ -476,7 +493,7 @@
         // ─────────────────────────────────────────────────────────────────────────
 
         const TILE = { FLOOR: 0, WALL: 1, WATER: 2 };
-        const ENTITY_TOOLS = new Set(['springU', 'springD', 'springL', 'springR', 'mirrorA', 'mirrorB', 'hammerU', 'hammerD', 'hammerL', 'hammerR', 'enemy', 'player', 'exit', 'item', 'spawner']);
+        const ENTITY_TOOLS = new Set(['springU', 'springD', 'springL', 'springR', 'mirrorA', 'mirrorB', 'hammerU', 'hammerD', 'hammerL', 'hammerR', 'enemy', 'player', 'exit', 'item', 'spawner', 'statue', 'pusher_enemy']);
 
         const TILE_COLORS = {
             0: '#3a2e1e',  // sol
@@ -504,6 +521,8 @@
             exit: { bg: '#0a2e10', fill: '#27ae60', label: '▶' },
             item: { bg: '#001e2e', fill: '#00d4ff', label: '💎' },
             spawner: { bg: '#1a0a2e', fill: '#9b59b6', label: '🔷' },
+            statue: { bg: '#263238', fill: '#90a4ae', label: '🗿' },
+            pusher_enemy: { bg: '#2e0d0a', fill: '#ff4400', label: '♉' },
         };
         const TOOL_LABELS = {
             floor: 'Sol', wall: 'Mur', water: 'Eau',
@@ -514,6 +533,8 @@
             hammerL: 'Marteau Gauche', hammerR: 'Marteau Droite',
             enemy: 'Ennemi', player: 'Joueur', exit: 'Sortie',
             item: 'Éclat de Miroir', spawner: 'Spawner',
+            statue: 'Bloc',
+            pusher_enemy: 'Pousseur',
         };
 
         // State
