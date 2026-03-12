@@ -35,14 +35,31 @@ class HUDScene extends Phaser.Scene {
 
         this.medallion.add([frame, portrait]);
 
-        // 2. Compteur d'éclats
-        this.itemText = this.add.text(120, 45, "◆ ÉCLATS : 0 / 0", {
-            fontFamily: 'monospace',
-            fontSize: '24px',
-            color: '#00ffcc',
+        // 2. Infos Niveau
+        this.levelNameText = this.add.text(120, 15, "NIVEAU", {
+            fontFamily: 'serif',
+            fontSize: '28px',
+            color: '#ffd700',
             stroke: '#000000',
             strokeThickness: 4
         });
+
+        this.itemText = this.add.text(120, 50, "◆ ÉCLATS : 0 / 0", {
+            fontFamily: 'monospace',
+            fontSize: '18px',
+            color: '#00ffcc',
+            stroke: '#000000',
+            strokeThickness: 3
+        });
+
+        // 3. Conseil de Tutoriel (Bas de l'écran)
+        this.tutorialText = this.add.text(this.scale.width / 2, this.scale.height - 40, "", {
+            fontFamily: 'monospace',
+            fontSize: '16px',
+            color: '#ffffff',
+            backgroundColor: '#000000aa',
+            padding: { x: 10, y: 5 }
+        }).setOrigin(0.5);
 
         // 3. Bouton Pause
         this.btnPause = this.add.container(this.scale.width - 60, 50);
@@ -58,6 +75,15 @@ class HUDScene extends Phaser.Scene {
     }
 
     _updateHUD(data) {
+        if (data.levelName) {
+            this.levelNameText.setText(data.levelName.toUpperCase());
+        }
+        if (data.tutorialTip !== undefined) {
+            this.tutorialText.setText(data.tutorialTip);
+            // Faire clignoter ou apparaître doucement ?
+            this.tutorialText.setAlpha(0);
+            this.tweens.add({ targets: this.tutorialText, alpha: 1, duration: 500 });
+        }
         if (data.itemsCollected !== undefined) {
             this.itemText.setText(`◆ ÉCLATS : ${data.itemsCollected} / ${data.itemsTotal}`);
         }
@@ -102,10 +128,13 @@ class HUDScene extends Phaser.Scene {
             color: '#00ffcc'
         }).setOrigin(0.5);
 
-        const btnResume = this._makeMenuButton(0, 10, "REPRENDRE", () => this._togglePause());
-        const btnQuit = this._makeMenuButton(0, 70, "QUITTER", () => this._quitGame());
+        const btnResume = this._makeMenuButton(0, -10, "REPRENDRE", () => this._togglePause());
+        const btnOptions = this._makeMenuButton(0, 40, "OPTIONS", () => {
+            this.scene.launch('OptionsScene');
+        });
+        const btnQuit = this._makeMenuButton(0, 90, "QUITTER", () => this._quitGame());
 
-        this.pauseMenu.add([bg, panel, title, btnResume, btnQuit]);
+        this.pauseMenu.add([bg, panel, title, btnResume, btnOptions, btnQuit]);
     }
 
     _makeMenuButton(x, y, label, callback) {

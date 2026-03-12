@@ -39,6 +39,8 @@ class GameScene extends Phaser.Scene {
     this._mapGfx = null;
     this.keys = {}; // Pour stocker les touches d'input
     this.currentLevelNumber = 1; // [SAVE]
+    this.levelName = "";
+    this.tutorialTip = "";
   }
 
   // ── init ────────────────────────────────────────────────────────────────────
@@ -61,13 +63,22 @@ class GameScene extends Phaser.Scene {
     this.load.spritesheet('hero_idle_back', 'hero_idle_back.png', { frameWidth: 160, frameHeight: 478 });
     this.load.spritesheet('hero_idle_right', 'hero_idle_right.png', { frameWidth: 160, frameHeight: 478 });
     this.load.spritesheet('hero_idle_left', 'hero_idle_left.png', { frameWidth: 160, frameHeight: 478 });
+
+    // Chargement dynamique du JSON du niveau
+    this.load.json(`levelData${this.currentLevelNumber}`, `levels/level${this.currentLevelNumber}.json`);
   }
 
   // ── create ──────────────────────────────────────────────────────────────────
   create() {
     this._initHeroAnimations();
 
-    this._loadLevel(LEVEL_DATA);
+    // Priorité au global GameLevels (src/Levels.js), sinon cache, sinon fallback
+    const levelKey = this.currentLevelNumber.toString();
+    const levelData = (typeof GameLevels !== 'undefined' && GameLevels[levelKey])
+      ? GameLevels[levelKey]
+      : (this.cache.json.get(`levelData${this.currentLevelNumber}`) || LEVEL_DATA);
+
+    this._loadLevel(levelData);
     this._renderMap();
 
     // Lancement du HUD par-dessus le jeu
@@ -77,7 +88,9 @@ class GameScene extends Phaser.Scene {
     this.time.delayedCall(10, () => {
       this.events.emit('updateHUD', {
         itemsCollected: this.itemsCollected,
-        itemsTotal: this.itemsTotal
+        itemsTotal: this.itemsTotal,
+        levelName: this.levelName,
+        tutorialTip: this.tutorialTip
       });
     });
 
@@ -161,71 +174,102 @@ class GameScene extends Phaser.Scene {
     this.itemsCollected = 0;
     this.itemsTotal = 0;
     this._victoryShown = false;
+    this.levelName = data.name || `NIVEAU ${this.currentLevelNumber}`;
+    this.tutorialTip = data.tutorial_tip || "";
 
     // ── Dimensions ──────────────────────────────────────────────────────────
-    GRID_COLS = data.width;
-    GRID_ROWS = data.height;
+    if (data.mapData) {
+      // Format matriciel (User)
+      GRID_ROWS = data.mapData.length;
+      GRID_COLS = data.mapData[0].length;
+    } else {
+      // Format original
+      GRID_COLS = data.width || 20;
+      GRID_ROWS = data.height || 20;
+    }
+
     WORLD_W = GRID_COLS * TILE_SIZE;
     WORLD_H = GRID_ROWS * TILE_SIZE;
-
-    // ── Grille de tuiles ────────────────────────────────────────────────────
-    // Le JSON map est [row][col] avec 0=sol, 1=mur, 2=eau
-    this.map = data.map.map(row => [...row]);
 
     // Initialiser la grille de sprites vide
     for (let r = 0; r < GRID_ROWS; r++) {
       this.tileSprites[r] = new Array(GRID_COLS).fill(null);
     }
 
-    // ── Entités ─────────────────────────────────────────────────────────────
-    let playerSpawn = { x: 1, y: 1 };   // fallback si absent du JSON
+    // ── Construction de la carte et des entités ─────────────────────────────
+    let playerSpawn = { x: 1, y: 1 };
 
-    for (const e of data.entities) {
-      switch (e.type) {
-        case 'player':
-          playerSpawn = { x: e.x, y: e.y };
-          break;
-        case 'enemy':
-          this.enemies.push(new Enemy(this, e.x, e.y));
-          break;
-        case 'mirrorA':
-        case 'mirror':
-          this.mirrors.push(new Mirror(this, e.x, e.y,
-            (e.orientation === '\\') ? '\\' : '/'));
-          break;
-        case 'mirrorB':
-          this.mirrors.push(new Mirror(this, e.x, e.y, '\\'));
-          break;
-        case 'item':
-        case 'shard':
-          this.items.push(new Item(this, e.x, e.y));
-          break;
-        case 'exit':
-          this.exitDoor = new ExitDoor(this, e.x, e.y);
-          break;
-        case 'spawner':
-          this.spawners.push(new Spawner(this, e.x, e.y));
-          break;
-        case 'spring':
-          this.springs.push(new Spring(this, e.x, e.y, e.orientation));
-          break;
-        case 'hammer':
-          this.spinners.push(new HammerSpinner(this, e.x, e.y, e.orientation));
-          break;
-        case 'pusher_enemy':
-          this.enemies.push(new PusherEnemy(this, e.x, e.y));
-          break;
-        case 'statue': {
-          const enemy = new Enemy(this, e.x, e.y);
-          enemy.petrify();
-          this.enemies.push(enemy);
-          break;
+    if (data.mapData) {
+      // Parsing du matriciel : 0=sol, 1=mur, 2=eau, 3=ennemi, 4=gemme, 5=joueur, 6=porte
+      this.map = [];
+      for (let r = 0; r < GRID_ROWS; r++) {
+        this.map[r] = [];
+        for (let c = 0; c < GRID_COLS; c++) {
+          const val = data.mapData[r][c];
+          if (val <= 2) {
+            this.map[r][c] = val;
+          } else {
+            this.map[r][c] = TILE.FLOOR;
+            if (val === 3) this.enemies.push(new Enemy(this, c, r));
+            else if (val === 4) this.items.push(new Item(this, c, r));
+            else if (val === 5) playerSpawn = { x: c, y: r };
+            else if (val === 6) this.exitDoor = new ExitDoor(this, c, r);
+          }
+        }
+      }
+    } else {
+      // Parsing original
+      this.map = data.map.map(row => [...row]);
+      for (const e of data.entities) {
+        switch (e.type) {
+          case 'player':
+            playerSpawn = { x: e.x, y: e.y };
+            break;
+          case 'enemy':
+            this.enemies.push(new Enemy(this, e.x, e.y));
+            break;
+          case 'mirror':
+          case 'mirrorA':
+            this.mirrors.push(new Mirror(this, e.x, e.y, (e.orientation === '\\') ? '\\' : '/'));
+            break;
+          case 'mirrorB':
+            this.mirrors.push(new Mirror(this, e.x, e.y, '\\'));
+            break;
+          case 'item':
+          case 'shard':
+            this.items.push(new Item(this, e.x, e.y));
+            break;
+          case 'exit':
+            this.exitDoor = new ExitDoor(this, e.x, e.y);
+            break;
+          case 'spawner':
+            this.spawners.push(new Spawner(this, e.x, e.y));
+            break;
+          case 'spring':
+            this.springs.push(new Spring(this, e.x, e.y, e.orientation));
+            break;
+          case 'hammer':
+            this.spinners.push(new HammerSpinner(this, e.x, e.y, e.orientation));
+            break;
+          case 'pusher_enemy':
+            this.enemies.push(new PusherEnemy(this, e.x, e.y));
+            break;
+          case 'statue': {
+            const enemy = new Enemy(this, e.x, e.y);
+            enemy.petrify();
+            this.enemies.push(enemy);
+            break;
+          }
         }
       }
     }
 
-    // Si aucun item dans le niveau, la porte s'ouvre immédiatement
-    this.itemsTotal = this.items.length;
+    // Gestion de gemsRequired ou itemsTotal
+    if (data.gemsRequired !== undefined) {
+      this.itemsTotal = data.gemsRequired;
+    } else {
+      this.itemsTotal = this.items.length;
+    }
     this.itemsCollected = 0;
     if (this.itemsTotal === 0 && this.exitDoor) this.exitDoor.open();
 
@@ -745,7 +789,15 @@ class GameScene extends Phaser.Scene {
 
     this.time.delayedCall(2000, () => {
       cam.fadeOut(500, 0, 0, 0);
-      cam.once('camerafadeoutcomplete', () => this.scene.restart());
+      cam.once('camerafadeoutcomplete', () => {
+        // Passer au niveau suivant (limité à 5 pour l'instant)
+        if (this.currentLevelNumber < 5) {
+          this.scene.start('GameScene', { level: this.currentLevelNumber + 1 });
+        } else {
+          this.scene.start('MenuScene');
+          this.scene.stop('HUDScene');
+        }
+      });
     });
   }
 
@@ -794,7 +846,7 @@ const config = {
   type: Phaser.AUTO,
   backgroundColor: '#050505',
   physics: { default: 'arcade' },
-  scene: [MenuScene, LevelSelectScene, GameScene, HUDScene],
+  scene: [MenuScene, LevelSelectScene, GameScene, HUDScene, OptionsScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

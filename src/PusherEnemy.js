@@ -8,53 +8,8 @@ class PusherEnemy extends Enemy {
         this.isPusher = true;
     }
 
-    _drawLiving(chase) {
-        // Simple sprite display for now (minotaur)
-        if (!this.sprite) {
-            this.gfx.clear();
-            this.sprite = this.scene.add.sprite(0, 0, 'pusher_enemy');
-            this.sprite.setDisplaySize(TILE_SIZE * 0.9, TILE_SIZE * 0.9);
-            // On l'ajoute comme enfant si possible ou on le gère manuellement
-            // Phaser Graphics n'est pas un conteneur simple pour Sprites, 
-            // on va plutôt utiliser un Container ou juste dessiner un truc distinct
-        }
-
-        // Comme Enemy utilise Graphics, on va rester sur Graphics pour la cohérence
-        // mais avec un look "Lourd"
-        const pad = 4;
-        const s = TILE_SIZE - pad * 2;
-        this.gfx.clear();
-        this.gfx.fillStyle(chase ? 0xff4400 : 0x8d6e63, 1); // Marron/Rouge
-        this.gfx.fillRect(-s / 2, -s / 2, s, s);
-
-        // Cornes / Détails
-        this.gfx.fillStyle(0xeeeeee, 1);
-        this.gfx.fillTriangle(-s / 2, -s / 2, -s / 2 + 10, -s / 2, -s / 2, -s / 2 + 10);
-        this.gfx.fillTriangle(s / 2, -s / 2, s / 2 - 10, -s / 2, s / 2, -s / 2 + 10);
-
-        if (chase) {
-            this.gfx.lineStyle(4, 0xffd700, 1);
-            this.gfx.strokeRect(-s / 2, -s / 2, s, s);
-        }
-
-        // Yeux en colère
-        this.gfx.fillStyle(0xff0000, 1);
-        this.gfx.fillCircle(-8, -6, 4);
-        this.gfx.fillCircle(8, -6, 4);
-    }
-
-    // Le PusherEnemy ne devient pas un bloc quand il est pétrifié
-    _drawPetrified() {
-        const pad = 4;
-        const s = TILE_SIZE - pad * 2;
-        this.gfx.clear();
-        // Look "Grisé/Figé" mais garde sa forme
-        this.gfx.fillStyle(0x455a64, 1);
-        this.gfx.fillRect(-s / 2, -s / 2, s, s);
-        this.gfx.fillStyle(0xeeeeee, 0.3);
-        this.gfx.fillTriangle(-s / 2, -s / 2, -s / 2 + 10, -s / 2, -s / 2, -s / 2 + 10);
-        this.gfx.fillTriangle(s / 2, -s / 2, s / 2 - 10, -s / 2, s / 2, -s / 2 + 10);
-    }
+    // PusherEnemy utilise maintenant les méthodes de dessin de la classe de base Enemy
+    // avec le flag this.isPusher filtré dans _drawLiving/_drawPetrified.
 
     _aiTick() {
         if (this.petrified) return;
@@ -190,31 +145,4 @@ class PusherEnemy extends Enemy {
         });
     }
 
-    // Surcharge petrify pour ne pas être poussable
-    petrify() {
-        if (this.petrified) return;
-        this.petrified = true;
-        this.aiState = AI_STATE.PETRIFIED;
-
-        if (this._aiTimer) { this._aiTimer.remove(false); this._aiTimer = null; }
-        this.scene.tweens.killTweensOf(this.gfx);
-        this.moving = false;
-
-        const snapX = Math.round(this.gfx.x / TILE_SIZE - 0.5);
-        const snapY = Math.round(this.gfx.y / TILE_SIZE - 0.5);
-        this.gridX = Phaser.Math.Clamp(snapX, 0, GRID_COLS - 1);
-        this.gridY = Phaser.Math.Clamp(snapY, 0, GRID_ROWS - 1);
-        const { x: px, y: py } = gridToPixel(this.gridX, this.gridY);
-
-        this.scene.tweens.add({
-            targets: this.gfx,
-            x: px, y: py,
-            duration: 100,
-            onComplete: () => {
-                this._drawPetrified();
-                // Il se libère simplement après 10s
-                this._petrifyTimer = this.scene.time.delayedCall(10000, () => this._revive());
-            }
-        });
-    }
 }

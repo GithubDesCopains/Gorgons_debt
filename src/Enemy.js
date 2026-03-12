@@ -44,36 +44,67 @@ class Enemy {
     const pad = 8;
     const s = TILE_SIZE - pad * 2;
     this.gfx.clear();
-    this.gfx.fillStyle(chase ? 0xff2200 : COLOR.ENEMY, 1);
-    this.gfx.fillTriangle(0, -s / 2, s / 2, s / 2, -s / 2, s / 2);
-    this.gfx.fillTriangle(0, s / 2, s / 2, -s / 2, -s / 2, -s / 2);
-    if (chase) {
-      // Contour doré en mode alerte
-      this.gfx.lineStyle(3, 0xffd700, 1);
-      this.gfx.strokeTriangle(0, -s / 2, s / 2, s / 2, -s / 2, s / 2);
-      this.gfx.strokeTriangle(0, s / 2, s / 2, -s / 2, -s / 2, -s / 2);
+    // Toujours reset alpha/scale au cas où un tween a été coupé
+    this.gfx.setAlpha(1);
+    this.gfx.setScale(1);
+
+    this.gfx.fillStyle(chase ? 0xff2200 : (this.isPusher ? 0x8d6e63 : COLOR.ENEMY), 1);
+
+    if (this.isPusher) {
+      // Pusher : Forme carrée massive mais avec des "épaules"
+      this.gfx.fillRect(-s / 2, -s / 2, s, s);
+      this.gfx.fillStyle(0x000000, 0.3);
+      this.gfx.fillRect(-s / 2, s / 2 - 10, s, 10); // Ombre basse
+    } else {
+      // Ennemi standard : Triangles (sablier)
+      this.gfx.fillTriangle(0, -s / 2, s / 2, s / 2, -s / 2, s / 2);
+      this.gfx.fillTriangle(0, s / 2, s / 2, -s / 2, -s / 2, -s / 2);
     }
-    this.gfx.fillStyle(0xffffff, 0.9);
-    this.gfx.fillCircle(-6, -4, 5);
-    this.gfx.fillCircle(6, -4, 5);
+
+    if (chase) {
+      this.gfx.lineStyle(3, 0xffd700, 1);
+      if (this.isPusher) {
+        this.gfx.strokeRect(-s / 2, -s / 2, s, s);
+      } else {
+        this.gfx.strokeTriangle(0, -s / 2, s / 2, s / 2, -s / 2, s / 2);
+        this.gfx.strokeTriangle(0, s / 2, s / 2, -s / 2, -s / 2, -s / 2);
+      }
+    }
+
+    // Yeux
+    this.gfx.fillStyle(chase ? 0xffffff : 0xffffff, 0.9);
+    if (this.isPusher) {
+      this.gfx.fillCircle(-8, -6, 5);
+      this.gfx.fillCircle(8, -6, 5);
+      // Cornes
+      this.gfx.fillStyle(0xeeeeee, 1);
+      this.gfx.fillTriangle(-s / 2, -s / 2, -s / 2 + 12, -s / 2, -s / 2, -s / 2 + 12);
+      this.gfx.fillTriangle(s / 2, -s / 2, s / 2 - 12, -s / 2, s / 2, -s / 2 + 12);
+    } else {
+      this.gfx.fillCircle(-6, -4, 5);
+      this.gfx.fillCircle(6, -4, 5);
+    }
   }
 
   _drawPetrified() {
     const pad = 4;
     const s = TILE_SIZE - pad * 2;
     this.gfx.clear();
-    this.gfx.fillStyle(0x6b6b6b, 1);
+    // Toujours reset alpha/scale
+    this.gfx.setAlpha(1);
+    this.gfx.setScale(1);
+
+    const stoneColor = this.isPusher ? 0x455a64 : COLOR.ENEMY_STONE;
+    this.gfx.fillStyle(stoneColor, 1);
     this.gfx.fillRect(-s / 2, -s / 2, s, s);
-    this.gfx.fillStyle(0x9c9c9c, 1);
+
+    // Détails de pierre
+    this.gfx.fillStyle(0xffffff, 0.2);
     this.gfx.fillRect(-s / 2, -s / 2, s, 4);
     this.gfx.fillRect(-s / 2, -s / 2, 4, s);
-    this.gfx.fillStyle(0x4a4a4a, 1);
+    this.gfx.fillStyle(0x000000, 0.3);
     this.gfx.fillRect(s / 2 - 4, -s / 2, 4, s);
     this.gfx.fillRect(-s / 2, s / 2 - 4, s, 4);
-    this.gfx.fillStyle(0x333333, 0.6);
-    this.gfx.fillRect(-6, -12, 2, 18);
-    this.gfx.fillRect(4, -4, 2, 12);
-    this.gfx.fillRect(-10, 6, 8, 2);
   }
 
   // ── IA ──────────────────────────────────────────────────────────────────────
@@ -301,7 +332,9 @@ class Enemy {
 
     // Libération dans 10 s supplémentaires
     this._reviveTimer = this.scene.time.delayedCall(
-      10000, () => this._revive()
+      10000, () => {
+        if (this.petrified) this._revive();
+      }
     );
   }
 
@@ -340,10 +373,15 @@ class Enemy {
 
   // ── Arrêter tous les effets de l'alerte ────────────────────────────────────
   _stopAlertEffects() {
+    this.scene.tweens.killTweensOf(this.gfx); // Arrête TOUS les tweens (flash, shake, etc.)
     if (this._shakeTween) { this._shakeTween.stop(); this._shakeTween = null; }
     if (this._blinkEvent) { this._blinkEvent.remove(); this._blinkEvent = null; }
     if (this._petrifyTimer) { this._petrifyTimer.remove(); this._petrifyTimer = null; }
     if (this._reviveTimer) { this._reviveTimer.remove(); this._reviveTimer = null; }
+
+    // Toujours reset l'alpha et les échelles à la fin
+    this.gfx.setAlpha(1);
+    this.gfx.setScale(1);
   }
 
   // ── [WATER] Couler ──────────────────────────────────────────────────────────

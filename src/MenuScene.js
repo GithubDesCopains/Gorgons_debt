@@ -42,8 +42,8 @@ class MenuScene extends Phaser.Scene {
         this.btnContainer = this.add.container(width / 2, height * 0.65).setAlpha(0);
         this._createButtons();
 
-        // 5. Lancer la séquence dramatique
-        this.time.delayedCall(1500, () => this._triggerStorm());
+        // 5. Lancer la séquence dramatique plus rapidement (500ms au lieu de 1500ms)
+        this.time.delayedCall(500, () => this._triggerStorm());
 
         // 6. Jouer la musique du titre
         if (!this.sound.get('titleMusic')) {
@@ -84,9 +84,9 @@ class MenuScene extends Phaser.Scene {
                     targets: this.bgDark,
                     alpha: 1,
                     duration: 500,
+                    onStart: () => this._showUI(), // Commencer à montrer l'UI dès le début du fondu
                     onComplete: () => {
                         this.bgSunny.destroy();
-                        this._showUI();
                     }
                 });
                 flash.destroy();
@@ -131,8 +131,11 @@ class MenuScene extends Phaser.Scene {
         const btnLevels = this._makeButton(0, 80, "NIVEAUX", () => {
             this.scene.start('LevelSelectScene');
         });
+        const btnOptions = this._makeButton(0, 160, "OPTIONS", () => {
+            this.scene.launch('OptionsScene');
+        });
 
-        this.btnContainer.add([btnStart, btnLevels]);
+        this.btnContainer.add([btnStart, btnLevels, btnOptions]);
     }
 
     _makeButton(x, y, label, callback) {
