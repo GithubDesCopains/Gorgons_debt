@@ -527,6 +527,18 @@
                 <button class="tool-btn" data-tool="statue" title="Bloc (Ennemi pétrifié)">
                     <div class="tool-icon ti-statue">🗿</div>Bloc
                 </button>
+                <button class="tool-btn" data-tool="pressure_plate" title="Plaque (Générique)">
+                    <div class="tool-icon" style="background:#34495e;border:1px solid #7f8c8d;color:#2ecc71;font-size:18px;">⊞</div>Plate
+                </button>
+                <button class="tool-btn" data-tool="plate_door" title="Plaque -> Porte">
+                    <div class="tool-icon" style="background:#34495e;border:1px solid #7f8c8d;color:#27ae60;font-size:18px;">🚪</div>P. Porte
+                </button>
+                <button class="tool-btn" data-tool="plate_spikes" title="Plaque -> Pics">
+                    <div class="tool-icon" style="background:#34495e;border:1px solid #7f8c8d;color:#bdc3c7;font-size:18px;">⚠</div>P. Pics
+                </button>
+                <button class="tool-btn" data-tool="spikes" title="Pics (Trap)">
+                    <div class="tool-icon" style="background:#2c3e50;border:1px solid #bdc3c7;color:#bdc3c7;font-size:18px;">⚠</div>Pics
+                </button>
 
                 <div class="sep"></div>
                 <div class="tool-section-label">Zoom</div>
@@ -578,7 +590,7 @@
         // ─────────────────────────────────────────────────────────────────────────
 
         const TILE = { FLOOR: 0, WALL: 1, WATER: 2, SACRED: 7 };
-        const ENTITY_TOOLS = new Set(['springU', 'springD', 'springL', 'springR', 'mirrorA', 'mirrorB', 'hammerU', 'hammerD', 'hammerL', 'hammerR', 'enemy', 'player', 'exit', 'item', 'spawner', 'statue', 'pusher_enemy']);
+        const ENTITY_TOOLS = new Set(['springU', 'springD', 'springL', 'springR', 'mirrorA', 'mirrorB', 'hammerU', 'hammerD', 'hammerL', 'hammerR', 'enemy', 'player', 'exit', 'item', 'spawner', 'statue', 'pusher_enemy', 'pressure_plate', 'plate_door', 'plate_spikes', 'spikes']);
 
         const TILE_COLORS = {
             0: '#3a2e1e',  // sol
@@ -610,6 +622,10 @@
             spawner: { bg: '#1a0a2e', fill: '#9b59b6', label: '🔷' },
             statue: { bg: '#263238', fill: '#90a4ae', label: '🗿' },
             pusher_enemy: { bg: '#2e0d0a', fill: '#ff4400', label: '♉' },
+            pressure_plate: { bg: '#34495e', fill: '#2ecc71', label: '⊞' },
+            plate_door: { bg: '#34495e', fill: '#27ae60', label: '🚪' },
+            plate_spikes: { bg: '#34495e', fill: '#bdc3c7', label: '⚠' },
+            spikes: { bg: '#2c3e50', fill: '#bdc3c7', label: '⚠' },
         };
         const TOOL_LABELS = {
             floor: 'Sol', wall: 'Mur', water: 'Eau', sacred: 'Case Sacrée',
@@ -622,6 +638,10 @@
             item: 'Éclat de Miroir', spawner: 'Spawner',
             statue: 'Bloc',
             pusher_enemy: 'Pousseur',
+            pressure_plate: 'Plaque (Générique)',
+            plate_door: 'Plaque -> Porte',
+            plate_spikes: 'Plaque -> Pics',
+            spikes: 'Pics',
         };
 
         // State
@@ -1037,6 +1057,10 @@
                             else if (val === 4) type = 'item';
                             else if (val === 5) type = 'player';
                             else if (val === 6) type = 'exit';
+                            else if (val === 12) type = 'pressure_plate';
+                            else if (val === 13) type = 'spikes';
+                            else if (val === 14) type = 'plate_door';
+                            else if (val === 15) type = 'plate_spikes';
                             entities[r][c] = type ? { type } : null;
                         }
                     }
@@ -1086,6 +1110,10 @@
                             else if (e.type === 'item') matrixLevel.mapData[r][c] = 4;
                             else if (e.type === 'player') matrixLevel.mapData[r][c] = 5;
                             else if (e.type === 'exit') matrixLevel.mapData[r][c] = 6;
+                            else if (e.type === 'pressure_plate') matrixLevel.mapData[r][c] = 12;
+                            else if (e.type === 'spikes') matrixLevel.mapData[r][c] = 13;
+                            else if (e.type === 'plate_door') matrixLevel.mapData[r][c] = 14;
+                            else if (e.type === 'plate_spikes') matrixLevel.mapData[r][c] = 15;
                             else matrixLevel.mapData[r][c] = t; 
                         } else {
                             matrixLevel.mapData[r][c] = t;

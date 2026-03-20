@@ -32,6 +32,8 @@ class GameScene extends Phaser.Scene {
     this.springs = [];     // [SPRING] ressorts
     this.spinners = [];    // [HAMMERSPINNER] tourniquets 3x3
     this.stoneColumns = [];    // [COLUMNS] invoquées par le joueur
+    this.pressurePlates = [];
+    this.spikes = [];
     this.boss = null;      // [BOSS] Hecatonchire
     this.exitDoor = null;  // unique porte de sortie
     this.itemsCollected = 0;
@@ -197,6 +199,8 @@ class GameScene extends Phaser.Scene {
     this.springs = [];
     this.spinners = [];
     this.stoneColumns = [];
+    this.pressurePlates = [];
+    this.spikes = [];
     this.tileSprites = []; // Grille pour stocker les références aux sprites de fond
     this.exitDoor = null;
     this.itemsCollected = 0;
@@ -242,6 +246,10 @@ class GameScene extends Phaser.Scene {
             else if (val === 4) this.items.push(new Item(this, c, r));
             else if (val === 5) playerSpawn = { x: c, y: r };
             else if (val === 6) this.exitDoor = new ExitDoor(this, c, r);
+            else if (val === 12) this.pressurePlates.push(new PressurePlate(this, c, r));
+            else if (val === 13) this.spikes.push(new Spikes(this, c, r));
+            else if (val === 14) this.pressurePlates.push(new PressurePlate(this, c, r, { target: 'ExitDoor' }));
+            else if (val === 15) this.pressurePlates.push(new PressurePlate(this, c, r, { target: 'Spikes' }));
           }
         }
       }
@@ -290,6 +298,12 @@ class GameScene extends Phaser.Scene {
           }
           case 'hecatonchire':
             this.boss = new HecatonchireBoss(this, e.x, e.y);
+            break;
+          case 'pressure_plate':
+            this.pressurePlates.push(new PressurePlate(this, e.x, e.y, { toggle: e.toggle, target: e.target }));
+            break;
+          case 'spikes':
+            this.spikes.push(new Spikes(this, e.x, e.y));
             break;
         }
       }
@@ -440,6 +454,8 @@ class GameScene extends Phaser.Scene {
     if (!keys) return;
 
     if (this.boss) this.boss.update();
+    this.checkPressurePlates();
+    this.checkSpikes();
 
     // ── GESTION GAMEPAD ──────────────────────────────────────────────────────
     const pad = this.input.gamepad ? this.input.gamepad.pad1 : null;
@@ -851,7 +867,10 @@ class GameScene extends Phaser.Scene {
     });
     this.cameras.main.flash(80, 0, 212, 255);  // flash cyan
     if (this.itemsCollected >= this.itemsTotal && this.exitDoor) {
-      this.exitDoor.open();
+      // Vérifier aussi les plaques de pression liées à la porte
+      if (this.areAllTargetedPlatesActive('ExitDoor')) {
+        this.exitDoor.open();
+      }
     }
   }
 
@@ -940,6 +959,96 @@ class GameScene extends Phaser.Scene {
     this.time.delayedCall(1000, () => {
       this._victoryScreen();
     });
+  }
+
+  // ── Plaques de pression ──────────────────────────────────────────────
+  checkPressurePlates() {
+    for (const plate of this.pressurePlates) {
+      let isOccupied = false;
+      
+      // Joueur ?
+      if (this.player && this.player.gridX === plate.gridX && this.player.gridY === plate.gridY) {
+        isOccupied = true;
+      }
+      
+      // Ennemis ou Statues ?
+      if (!isOccupied) {
+        for (const enemy of this.enemies) {
+          if (enemy.gridX === plate.gridX && enemy.gridY === plate.gridY) {
+            isOccupied = true;
+            break;
+          }
+        }
+      }
+      
+      // Boss ?
+      if (!isOccupied && this.boss) {
+        // Le boss peut être imposant, mais ici on check son centre
+        if (this.boss.gridX === plate.gridX && this.boss.gridY === plate.gridY) {
+          isOccupied = true;
+        }
+      }
+      
+      plate.setPressed(isOccupied);
+    }
+
+    // Mise à jour des cibles (Pics, Porte)
+    this._updateLinkedEntities();
+  }
+
+  _updateLinkedEntities() {
+    // 1. Pics
+    for (const spike of this.spikes) {
+      // On cherche s'il y a une plaque qui cible 'Spikes'
+      // Optionnel : on pourrait cibler des pics spécifiques par ID, 
+      // mais ici on simplifie : si n'importe quelle plaque ciblée 'Spikes' est pressée, les pics se rétractent.
+      // Ou plus logiquement : si UNE plaque cible spécifiquement CE groupe de pics.
+      // Pour l'instant, on fait global pour le niveau :
+      const shouldRetract = this.areAnyTargetedPlatesActive('Spikes');
+      spike.setRetracted(shouldRetract);
+    }
+
+    // 2. Porte (si tous les items sont déjà là)
+    if (this.exitDoor && !this.exitDoor.isOpen && this.itemsCollected >= this.itemsTotal) {
+      if (this.areAllTargetedPlatesActive('ExitDoor')) {
+        this.exitDoor.open();
+      }
+    }
+  }
+
+  areAnyTargetedPlatesActive(target) {
+    // On prend les plaques qui ciblent explicitement 'target'
+    // OU les plaques sans cible (null) s'il n'y a pas de plaques spécifiques pour cette cible
+    const specificPlates = this.pressurePlates.filter(p => p.target === target);
+    const genericPlates = this.pressurePlates.filter(p => !p.target);
+    
+    const relevantPlates = specificPlates.length > 0 ? specificPlates : genericPlates;
+    
+    if (relevantPlates.length === 0) return false;
+    return relevantPlates.some(p => p.pressed);
+  }
+
+  areAllTargetedPlatesActive(target) {
+    const specificPlates = this.pressurePlates.filter(p => p.target === target);
+    const genericPlates = this.pressurePlates.filter(p => !p.target);
+    
+    const relevantPlates = specificPlates.length > 0 ? specificPlates : genericPlates;
+
+    if (relevantPlates.length === 0) return true; // Pas de plaques = condition remplie
+    return relevantPlates.every(p => p.pressed);
+  }
+
+  // ── Pics ─────────────────────────────────────────────────────────────
+  checkSpikes() {
+    if (!this.player || this.player.dead) return;
+    for (const spike of this.spikes) {
+      if (!spike.retracted) {
+        if (spike.gridX === this.player.gridX && spike.gridY === this.player.gridY) {
+          this._playerDeath();
+          return;
+        }
+      }
+    }
   }
 
   // ── Mort du joueur ─────────────────────────────────────────────────────────
