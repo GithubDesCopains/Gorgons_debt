@@ -163,6 +163,15 @@ class HUDScene extends Phaser.Scene {
     }
 
     _quitGame() {
+        const gameMusic = this.sound.get('gameMusic');
+        if (gameMusic && gameMusic.isPlaying) {
+            this.tweens.add({
+                targets: gameMusic,
+                volume: 0,
+                duration: 500,
+                onComplete: () => gameMusic.stop()
+            });
+        }
         this.scene.stop('GameScene');
         this.scene.stop('HUDScene');
         this.scene.start('MenuScene');

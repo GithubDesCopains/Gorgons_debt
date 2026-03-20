@@ -53,8 +53,8 @@ class GameScene extends Phaser.Scene {
   // ── preload ─────────────────────────────────────────────────────────────────
   preload() {
     this.load.image('spawner_ruins', 'spawner_ruins.png');
-    this.load.spritesheet('garden_soil', 'garden_soil.png', { frameWidth: 160, frameHeight: 160 });
-    this.load.spritesheet('bush_wall', 'bush_wall.png', { frameWidth: 160, frameHeight: 160 });
+    this.load.spritesheet('garden_soil', 'garden.png', { frameWidth: 160, frameHeight: 160 });
+    this.load.spritesheet('bush_wall', 'bush.png', { frameWidth: 160, frameHeight: 160 });
     this.load.image('pusher_enemy', 'pusher_enemy.png');
     this.load.image('basic_hero', 'basic_hero.png');
 
@@ -117,17 +117,28 @@ class GameScene extends Phaser.Scene {
 
     if (!gameMusic) {
       gameMusic = this.sound.add('gameMusic', { loop: true, volume: 0 });
-    } else {
-      gameMusic.volume = 0;
     }
 
-    if (!gameMusic.isPlaying) gameMusic.play({ loop: true });
+    // Si on est déjà en fondu ou si le volume est déjà bon, on ne fait rien de brusque
+    if (gameMusic.isPlaying) {
+      if (Math.abs(gameMusic.volume - targetVolume) < 0.05) return;
 
-    this.tweens.add({
-      targets: gameMusic,
-      volume: targetVolume,
-      duration: 2000
-    });
+      this.tweens.killTweensOf(gameMusic);
+      this.tweens.add({
+        targets: gameMusic,
+        volume: targetVolume,
+        duration: 1000
+      });
+    } else {
+      gameMusic.setVolume(0);
+      gameMusic.play();
+      this.tweens.killTweensOf(gameMusic);
+      this.tweens.add({
+        targets: gameMusic,
+        volume: targetVolume,
+        duration: 2000
+      });
+    }
   }
 
   _initHeroAnimations() {

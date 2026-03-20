@@ -45,18 +45,24 @@ class MenuScene extends Phaser.Scene {
         // 5. Lancer la séquence dramatique plus rapidement (500ms au lieu de 1500ms)
         this.time.delayedCall(500, () => this._triggerStorm());
 
-        // 6. Jouer la musique du titre
-        if (!this.sound.get('titleMusic')) {
-            this.titleMusic = this.sound.add('titleMusic', {
-                loop: true,
-                volume: saveData.settings.musicVolume
-            });
-            this.titleMusic.play();
-        } else {
-            this.titleMusic = this.sound.get('titleMusic');
-            this.titleMusic.setVolume(saveData.settings.musicVolume);
-            if (!this.titleMusic.isPlaying) this.titleMusic.play();
+        // 6. Musique du titre avec fondu doux
+        this.titleMusic = this.sound.get('titleMusic');
+        if (!this.titleMusic) {
+            this.titleMusic = this.sound.add('titleMusic', { loop: true, volume: 0 });
         }
+
+        const targetVol = saveData.settings.musicVolume;
+        if (!this.titleMusic.isPlaying) {
+            this.titleMusic.setVolume(0);
+            this.titleMusic.play();
+        }
+
+        this.tweens.killTweensOf(this.titleMusic);
+        this.tweens.add({
+            targets: this.titleMusic,
+            volume: targetVol,
+            duration: 1000
+        });
     }
 
     _triggerStorm() {
