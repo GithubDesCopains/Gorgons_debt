@@ -29,14 +29,14 @@ class MenuScene extends Phaser.Scene {
         this.bgDark.setAlpha(0);
 
         // 3. Titre (invisible au début)
-        this.title = this.add.text(width / 2, height * 0.3, "GORGON'S DEBT", {
+        /*this.title = this.add.text(width / 2, height * 0.3, "GORGON'S DEBT", {
             fontFamily: 'serif',
             fontSize: '84px',
             color: '#00ffcc',
             stroke: '#000000',
             strokeThickness: 8,
             shadow: { offsetX: 0, offsetY: 0, color: '#00ffcc', blur: 20, fill: true }
-        }).setOrigin(0.5).setAlpha(0);
+        }).setOrigin(0.5).setAlpha(0);*/
 
         // 4. Groupe de boutons (invisible au début)
         this.btnContainer = this.add.container(width / 2, height * 0.65).setAlpha(0);
@@ -106,7 +106,7 @@ class MenuScene extends Phaser.Scene {
 
     _showUI() {
         // Apparition du titre
-        this.tweens.add({
+        /*this.tweens.add({
             targets: this.title,
             alpha: 1,
             y: this.title.y + 20,
@@ -123,7 +123,7 @@ class MenuScene extends Phaser.Scene {
                     ease: 'Sine.easeInOut'
                 });
             }
-        });
+        });*/
 
         // Apparition des boutons
         this.tweens.add({
@@ -176,7 +176,7 @@ class MenuScene extends Phaser.Scene {
             }
 
             const threshold = 0.5;
-            
+
             // Navigation Haut/Bas
             if ((pad.up || pad.axes[1].value < -threshold) && !this._padUpPressed) {
                 this.selectedIndex = (this.selectedIndex - 1 + this.buttons.length) % this.buttons.length;

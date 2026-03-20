@@ -42,6 +42,7 @@ class GameScene extends Phaser.Scene {
     this.currentLevelNumber = 1; // [SAVE]
     this.levelName = "";
     this.tutorialTip = "";
+    this.canFireRay = true; // [PETRIFY RAY] Cooldown
   }
 
   // ── init ────────────────────────────────────────────────────────────────────
@@ -490,6 +491,10 @@ class GameScene extends Phaser.Scene {
 
   // ── [PETRIFY RAY] Tirer le rayon ───────────────────────────────────────────
   _fireRay() {
+    if (!this.canFireRay) return;
+    this.canFireRay = false;
+    this.time.delayedCall(1000, () => { this.canFireRay = true; });
+
     const { dx, dy } = this.player.dir;
     // Flash cyan sur le joueur
     this.cameras.main.flash(80, 0, 200, 255);
@@ -866,11 +871,30 @@ class GameScene extends Phaser.Scene {
     this._victoryShown = true;
     if (this.player) this.player.moving = true;  // bloquer les inputs
 
+    // ── Stopper tout mouvement et IA ──
+    this.enemies.forEach(e => {
+        if (e._aiTimer) e._aiTimer.remove();
+        if (e._petrifyTimer) e._petrifyTimer.remove();
+        if (e._reviveTimer) e._reviveTimer.remove();
+        if (e._blinkEvent) e._blinkEvent.remove();
+        this.tweens.killTweensOf(e.gfx);
+    });
+    this.spawners.forEach(s => {
+        if (s._checkTimer) s._checkTimer.remove();
+    });
+    if (this.boss) {
+        if (this.boss.rotationTween) this.boss.rotationTween.stop();
+        if (this.boss.attackTimer) this.boss.attackTimer.remove();
+        if (this.boss.phaseTimer) this.boss.phaseTimer.remove();
+        this.tweens.killTweensOf(this.boss);
+    }
+
     const cam = this.cameras.main;
     cam.flash(300, 255, 215, 0);
 
-    const cx = cam.scrollX + cam.width / 2;
-    const cy = cam.scrollY + cam.height / 2;
+    // Centrer par rapport à l'écran en tenant compte de la position de la caméra
+    const cx = cam.scrollX + (this.scale.width / 2) - cam.x;
+    const cy = cam.scrollY + (this.scale.height / 2) - cam.y;
 
     const panel = this.add.graphics();
     panel.fillStyle(0x000000, 0.65);
