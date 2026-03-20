@@ -32,6 +32,7 @@ class GameScene extends Phaser.Scene {
     this.springs = [];     // [SPRING] ressorts
     this.spinners = [];    // [HAMMERSPINNER] tourniquets 3x3
     this.stoneColumns = [];    // [COLUMNS] invoquées par le joueur
+    this.boss = null;      // [BOSS] Hecatonchire
     this.exitDoor = null;  // unique porte de sortie
     this.itemsCollected = 0;
     this.itemsTotal = 0;
@@ -53,16 +54,19 @@ class GameScene extends Phaser.Scene {
   // ── preload ─────────────────────────────────────────────────────────────────
   preload() {
     this.load.image('spawner_ruins', 'spawner_ruins.png');
+    this.load.image('sacred_tile', 'sacred_tile.png');
     this.load.spritesheet('garden_soil', 'garden.png', { frameWidth: 160, frameHeight: 160 });
     this.load.spritesheet('bush_wall', 'bush.png', { frameWidth: 160, frameHeight: 160 });
     this.load.image('pusher_enemy', 'pusher_enemy.png');
-    this.load.image('basic_hero', 'basic_hero.png');
 
     // Préchauffage des spritesheets du joueur (Dimensions affinées sans labels)
-    this.load.spritesheet('hero_idle_front', 'hero_idle_front.png', { frameWidth: 152, frameHeight: 182 });
-    this.load.spritesheet('hero_idle_back', 'hero_idle_back.png', { frameWidth: 160, frameHeight: 478 });
-    this.load.spritesheet('hero_idle_right', 'hero_idle_right.png', { frameWidth: 160, frameHeight: 478 });
-    this.load.spritesheet('hero_idle_left', 'hero_idle_left.png', { frameWidth: 160, frameHeight: 478 });
+    //  this.load.spritesheet('hero_idle_front', 'hero_idle_front.png', { frameWidth: 152, frameHeight: 182 });
+    // this.load.spritesheet('hero_idle_back', 'hero_idle_back.png', { frameWidth: 160, frameHeight: 478 });
+    //  this.load.spritesheet('hero_idle_right', 'hero_idle_right.png', { frameWidth: 160, frameHeight: 478 });
+    //  this.load.spritesheet('hero_idle_left', 'hero_idle_left.png', { frameWidth: 160, frameHeight: 478 });
+
+    // Nouvelles animations de marche (64x64, 13 frames par ligne)
+    this.load.spritesheet('hero', 'character-spritesheet.png', { frameWidth: 64, frameHeight: 64 });
 
     // Chargement dynamique du JSON du niveau
     this.load.json(`levelData${this.currentLevelNumber}`, `levels/level${this.currentLevelNumber}.json`);
@@ -143,22 +147,33 @@ class GameScene extends Phaser.Scene {
 
   _initHeroAnimations() {
     // Création des 4 animations d'attente
+    const framesPerRow = 26;
     const anims = [
-      { key: 'player-idle-down', texture: 'hero_idle_front' },
-      { key: 'player-idle-up', texture: 'hero_idle_back' },
-      { key: 'player-idle-right', texture: 'hero_idle_right' },
-      { key: 'player-idle-left', texture: 'hero_idle_left' },
+      { key: 'player-idle-up', start: 0 * framesPerRow, end: 0 * framesPerRow + 1 },
+      { key: 'player-idle-left', start: 1 * framesPerRow, end: 1 * framesPerRow + 1 },
+      { key: 'player-idle-down', start: 2 * framesPerRow, end: 2 * framesPerRow + 1 },
+      { key: 'player-idle-right', start: 3 * framesPerRow, end: 3 * framesPerRow + 1 },
+      { key: 'player-walk-up', start: 8 * framesPerRow, end: 8 * framesPerRow + 8 },    // 9e ligne
+      { key: 'player-walk-left', start: 9 * framesPerRow, end: 9 * framesPerRow + 8 },  // 10e ligne
+      { key: 'player-walk-down', start: 10 * framesPerRow, end: 10 * framesPerRow + 8 }, // 11e ligne
+      { key: 'player-walk-right', start: 11 * framesPerRow, end: 11 * framesPerRow + 8 } // 12e ligne
     ];
 
     anims.forEach(anim => {
-      if (!this.anims.exists(anim.key)) {
-        this.anims.create({
-          key: anim.key,
-          frames: this.anims.generateFrameNumbers(anim.texture, { start: 0, end: 3 }),
-          frameRate: 6,
-          repeat: -1
-        });
+      const isWalk = anim.key.includes('walk');
+      const frameRate = isWalk ? 9 : 2; // Plus rapide pour la marche
+
+      // Supprimer l'animation existante pour forcer la mise à jour si nécessaire
+      if (this.anims.exists(anim.key)) {
+        this.anims.remove(anim.key);
       }
+
+      this.anims.create({
+        key: anim.key,
+        frames: this.anims.generateFrameNumbers('hero', { start: anim.start, end: anim.end }),
+        frameRate: frameRate,
+        repeat: -1
+      });
     });
   }
 
@@ -174,6 +189,7 @@ class GameScene extends Phaser.Scene {
   _loadLevel(data) {
     // ── Reset complet (scene.restart ne rappelle pas le constructeur) ─────────
     this.enemies = [];
+    this.boss = null;
     this.mirrors = [];
     this.items = [];
     this.spawners = [];
@@ -217,7 +233,7 @@ class GameScene extends Phaser.Scene {
         this.map[r] = [];
         for (let c = 0; c < GRID_COLS; c++) {
           const val = data.mapData[r][c];
-          if (val <= 2) {
+          if (val <= 2 || val === 7 || val === 8) {
             this.map[r][c] = val;
           } else {
             this.map[r][c] = TILE.FLOOR;
@@ -271,6 +287,9 @@ class GameScene extends Phaser.Scene {
             this.enemies.push(enemy);
             break;
           }
+          case 'hecatonchire':
+            this.boss = new HecatonchireBoss(this, e.x, e.y);
+            break;
         }
       }
     }
@@ -325,7 +344,7 @@ class GameScene extends Phaser.Scene {
     }
 
     if (t === TILE.WALL) {
-      const img = this.add.image(x, y, 'bush_wall', 5);
+      const img = this.add.image(x, y, 'bush_wall');
       img.setOrigin(0, 0);
       img.setDisplaySize(TILE_SIZE, TILE_SIZE);
       img.setDepth(0.4);
@@ -336,9 +355,35 @@ class GameScene extends Phaser.Scene {
       g.fillRect(x + 1, y + 1, TILE_SIZE - 2, TILE_SIZE - 2);
       g.fillStyle(0x1565c0, 0.5);
       g.fillRect(x + 4, y + 4, TILE_SIZE / 2, 4);
+    } else if (t === TILE.SACRED) {
+      const floorImg = this.add.image(x, y, 'sacred_tile');
+      floorImg.setOrigin(0, 0);
+      floorImg.setDisplaySize(TILE_SIZE, TILE_SIZE);
+      floorImg.setDepth(0.1);
+      this.tileSprites[r][c] = floorImg;
+
+      // Lignes de grille optionnelles
+      g.fillStyle(COLOR.GRID_LINE, 0.1);
+      g.fillRect(x, y, TILE_SIZE, 1);
+      g.fillRect(x, y, 1, TILE_SIZE);
+    } else if (t === TILE.BLOCK_ONLY) {
+      // Tuile "bloc uniquement" : un fond sombre avec un motif de "grillage" ou "barreaux"
+      g.fillStyle(COLOR.BLOCK_ONLY, 1);
+      g.fillRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+
+      // Motif de barreaux horizontaux
+      g.lineStyle(2, 0x222222, 1);
+      for (let i = 1; i < 4; i++) {
+        const offset = i * (TILE_SIZE / 4);
+        g.lineBetween(x + 4, y + offset, x + TILE_SIZE - 4, y + offset);
+      }
+      
+      // Lignes de contour
+      g.lineStyle(1, 0x555555, 0.5);
+      g.strokeRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
     } else {
       // Une tuile sol = un sprite (Frame 5 = Row 2, Col 2)
-      const floorImg = this.add.image(x, y, 'garden_soil', 5);
+      const floorImg = this.add.image(x, y, 'garden_soil');
       floorImg.setOrigin(0, 0);
       floorImg.setDisplaySize(TILE_SIZE, TILE_SIZE);
       floorImg.setDepth(0.1);
@@ -363,49 +408,76 @@ class GameScene extends Phaser.Scene {
 
   // ── Inputs ─────────────────────────────────────────────────────────────────
   _setupInput() {
-    this.keys = {
-      up: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.UP),
-      down: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.DOWN),
-      left: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.LEFT),
-      right: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.RIGHT),
-      W: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W),
-      S: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S),
-      A: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.A),
-      D: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.D),
-      SPACE: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE),
-      C: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.C),
-      V: this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.V),
-    };
+    this.keys = this.input.keyboard.addKeys({
+      up: Phaser.Input.Keyboard.KeyCodes.UP,
+      down: Phaser.Input.Keyboard.KeyCodes.DOWN,
+      left: Phaser.Input.Keyboard.KeyCodes.LEFT,
+      right: Phaser.Input.Keyboard.KeyCodes.RIGHT,
+      W: Phaser.Input.Keyboard.KeyCodes.W,
+      S: Phaser.Input.Keyboard.KeyCodes.S,
+      A: Phaser.Input.Keyboard.KeyCodes.A,
+      D: Phaser.Input.Keyboard.KeyCodes.D,
+      SPACE: Phaser.Input.Keyboard.KeyCodes.SPACE,
+      C: Phaser.Input.Keyboard.KeyCodes.C,
+      V: Phaser.Input.Keyboard.KeyCodes.V,
+    });
   }
 
   // ── Update ─────────────────────────────────────────────────────────────────
   update() {
-    if (!this.player) return;
+    if (!this.player || this.player.dead) return;
 
     const keys = this.keys;
     if (!keys) return;
 
-    // [PETRIFY RAY] Tir rayon
-    if (Phaser.Input.Keyboard.JustDown(keys.SPACE)) {
+    if (this.boss) this.boss.update();
+
+    // ── GESTION GAMEPAD ──────────────────────────────────────────────────────
+    const pad = this.input.gamepad ? this.input.gamepad.pad1 : null;
+    let padUp = false, padDown = false, padLeft = false, padRight = false;
+    let padSpace = false, padC = false, padV = false;
+
+    if (pad) {
+      // Seuils pour les sticks analogiques
+      const threshold = 0.5;
+      padLeft = pad.left || pad.axes[0].value < -threshold;
+      padRight = pad.right || pad.axes[0].value > threshold;
+      padUp = pad.up || pad.axes[1].value < -threshold;
+      padDown = pad.down || pad.axes[1].value > threshold;
+
+      // Boutons d'action (A = 0, B = 1, X = 2, Y = 3 sur Xbox)
+      // On utilise JustDown manuel pour les actions "one-shot"
+      if (pad.buttons[0].pressed && !this._pad0Down) { padSpace = true; }
+      this._pad0Down = pad.buttons[0].pressed;
+
+      if (pad.buttons[2].pressed && !this._pad2Down) { padC = true; }
+      this._pad2Down = pad.buttons[2].pressed;
+
+      if (pad.buttons[1].pressed && !this._pad1Down) { padV = true; }
+      this._pad1Down = pad.buttons[1].pressed;
+    }
+
+    // [PETRIFY RAY] Tir rayon (Espace ou Bouton A)
+    if (Phaser.Input.Keyboard.JustDown(keys.SPACE) || padSpace) {
       this._fireRay();
     }
 
-    // [STONE COLUMN] Invoquer colonne
-    if (Phaser.Input.Keyboard.JustDown(keys.C)) {
+    // [STONE COLUMN] Invoquer colonne (C ou Bouton X)
+    if (Phaser.Input.Keyboard.JustDown(keys.C) || padC) {
       this.player.tryCreateColumn();
     }
 
-    // [STONE COLUMN] Détruire colonne
-    if (Phaser.Input.Keyboard.JustDown(keys.V)) {
+    // [STONE COLUMN] Détruire colonne (V ou Bouton B)
+    if (Phaser.Input.Keyboard.JustDown(keys.V) || padV) {
       this.player.tryDestroyColumn();
     }
 
     if (this.player.moving) return;   // déplacement en cours → bloquer
 
-    if (keys.left.isDown || keys.A.isDown) this.player.tryMove(-1, 0);
-    else if (keys.right.isDown || keys.D.isDown) this.player.tryMove(1, 0);
-    else if (keys.up.isDown || keys.W.isDown) this.player.tryMove(0, -1);
-    else if (keys.down.isDown || keys.S.isDown) this.player.tryMove(0, 1);
+    if (keys.left.isDown || keys.A.isDown || padLeft) this.player.tryMove(-1, 0);
+    else if (keys.right.isDown || keys.D.isDown || padRight) this.player.tryMove(1, 0);
+    else if (keys.up.isDown || keys.W.isDown || padUp) this.player.tryMove(0, -1);
+    else if (keys.down.isDown || keys.S.isDown || padDown) this.player.tryMove(0, 1);
   }
 
   // ── [PETRIFY RAY] Tirer le rayon ───────────────────────────────────────────
@@ -472,6 +544,8 @@ class GameScene extends Phaser.Scene {
         if (this.spawners?.some(s => s.gridX === tx && s.gridY === ty)) isUnbreakable = true;
         if (this.mirrors?.some(m => m.gridX === tx && m.gridY === ty)) isUnbreakable = true;
         if (this.exitDoor?.gridX === tx && this.exitDoor?.gridY === ty && !this.exitDoor.isOpen) isUnbreakable = true;
+        
+        // Note: TILE.BLOCK_ONLY (8) n'est PAS unbreakable, donc la statue peut passer dessus.
 
         if (isUnbreakable) {
           destX = tx - dx;
@@ -625,6 +699,22 @@ class GameScene extends Phaser.Scene {
           const dist = Phaser.Math.Distance.Between(statue.gfx.x, statue.gfx.y, this.player.gfx.x, this.player.gfx.y);
           if (dist < TILE_SIZE * 0.5) {
             this.player.kill();
+          }
+        }
+        // Boss damage detection (during slide)
+        if (this.boss && this.boss.state === 'DIZZY') {
+          const dist = Phaser.Math.Distance.Between(statue.gfx.x, statue.gfx.y, this.boss.x, this.boss.y);
+          if (dist < TILE_SIZE * 1.2) {
+            this.boss.takeDamage();
+            // Stop the statue?
+            // For now let's keep it sliding or destroy it?
+            // User says "le pousser sur le boss au moment où il s'arrête"
+            // but also "profiter de la phase de rotation pour pétrifier... et le pousser".
+            // If it hits the boss, it should probably stop or be destroyed.
+            statue.sliding = false; 
+            this.tweens.killTweensOf(statue.gfx);
+            statue.gfx.destroy();
+            this.enemies = this.enemies.filter(e => e !== statue);
           }
         }
       },
@@ -801,8 +891,9 @@ class GameScene extends Phaser.Scene {
     this.time.delayedCall(2000, () => {
       cam.fadeOut(500, 0, 0, 0);
       cam.once('camerafadeoutcomplete', () => {
-        // Passer au niveau suivant (limité à 5 pour l'instant)
-        if (this.currentLevelNumber < 5) {
+        // Passer au niveau suivant dynamiquement
+        const totalLevels = Object.keys(GameLevels).length;
+        if (this.currentLevelNumber < totalLevels) {
           this.scene.start('GameScene', { level: this.currentLevelNumber + 1 });
         } else {
           this.scene.start('MenuScene');
@@ -812,8 +903,17 @@ class GameScene extends Phaser.Scene {
     });
   }
 
+  onBossDefeated() {
+    this.cameras.main.flash(500, 255, 255, 255);
+    this.time.delayedCall(1000, () => {
+      this._victoryScreen();
+    });
+  }
+
   // ── Mort du joueur ─────────────────────────────────────────────────────────
   _playerDeath() {
+    if (this.player.dead) return;
+    this.player.dead = true;
     this.cameras.main.flash(200, 180, 0, 0);
     this.time.delayedCall(1000, () => {
       this.cameras.main.fadeOut(400, 0, 0, 0);
@@ -857,6 +957,7 @@ const config = {
   type: Phaser.AUTO,
   backgroundColor: '#050505',
   physics: { default: 'arcade' },
+  input: { gamepad: true },
   scene: [MenuScene, LevelSelectScene, GameScene, HUDScene, OptionsScene],
   scale: {
     mode: Phaser.Scale.FIT,

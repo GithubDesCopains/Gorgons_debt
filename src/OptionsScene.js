@@ -31,7 +31,7 @@ class OptionsScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         // Section Musique
-        this.add.text(width / 2, height / 2 - 80, "MUSIQUE", {
+        this.musicTitle = this.add.text(width / 2, height / 2 - 80, "MUSIQUE", {
             fontFamily: 'monospace',
             fontSize: '20px',
             color: '#ffffff'
@@ -47,7 +47,7 @@ class OptionsScene extends Phaser.Scene {
         this._createVolControls(width / 2, height / 2 - 40, 'music');
 
         // Section SFX
-        this.add.text(width / 2, height / 2 + 40, "EFFETS SONORES (SFX)", {
+        this.sfxTitle = this.add.text(width / 2, height / 2 + 40, "EFFETS SONORES (SFX)", {
             fontFamily: 'monospace',
             fontSize: '20px',
             color: '#ffffff'
@@ -63,7 +63,7 @@ class OptionsScene extends Phaser.Scene {
         this._createVolControls(width / 2, height / 2 + 80, 'sfx');
 
         // Bouton Retour
-        const btnBack = this.add.text(width / 2, height / 2 + 160, "RETOUR", {
+        this.btnBack = this.add.text(width / 2, height / 2 + 160, "RETOUR", {
             fontFamily: 'monospace',
             fontSize: '28px',
             color: '#00ffcc',
@@ -71,16 +71,69 @@ class OptionsScene extends Phaser.Scene {
             padding: { x: 20, y: 10 }
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
-        btnBack.on('pointerover', () => btnBack.setColor('#ffffff'));
-        btnBack.on('pointerout', () => btnBack.setColor('#00ffcc'));
-        btnBack.on('pointerdown', () => {
-            saveGame();
-            this.scene.stop();
-        });
+        this.btnBack.on('pointerdown', () => this._close());
+
+        // Navigation
+        this.selectedIndex = 0; // 0=Music, 1=SFX, 2=Back
+        this._updateHighlight();
 
         // Animation d'entrée
         this.cameras.main.setAlpha(0);
         this.tweens.add({ targets: this.cameras.main, alpha: 1, duration: 200 });
+    }
+
+    _updateHighlight() {
+        this.musicTitle.setColor(this.selectedIndex === 0 ? '#00ffcc' : '#ffffff');
+        this.sfxTitle.setColor(this.selectedIndex === 1 ? '#00ffcc' : '#ffffff');
+        this.btnBack.setAlpha(this.selectedIndex === 2 ? 1 : 0.7);
+        this.btnBack.setBackgroundColor(this.selectedIndex === 2 ? '#004444' : '#002222');
+    }
+
+    _close() {
+        saveGame();
+        this.scene.stop();
+    }
+
+    update() {
+        const pad = this.input.gamepad ? this.input.gamepad.pad1 : null;
+        if (!pad) return;
+
+        const threshold = 0.5;
+
+        // Navigation Verticale
+        if ((pad.up || pad.axes[1].value < -threshold) && !this._padUp) {
+            this.selectedIndex = (this.selectedIndex - 1 + 3) % 3;
+            this._updateHighlight();
+        }
+        this._padUp = (pad.up || pad.axes[1].value < -threshold);
+
+        if ((pad.down || pad.axes[1].value > threshold) && !this._padDown) {
+            this.selectedIndex = (this.selectedIndex + 1) % 3;
+            this._updateHighlight();
+        }
+        this._padDown = (pad.down || pad.axes[1].value > threshold);
+
+        // Navigation Horizontale (Volume)
+        if (this.selectedIndex === 0 || this.selectedIndex === 1) {
+            const type = this.selectedIndex === 0 ? 'music' : 'sfx';
+            if ((pad.left || pad.axes[0].value < -threshold) && !this._padLeft) {
+                this._changeVol(type, -0.1);
+            }
+            this._padLeft = (pad.left || pad.axes[0].value < -threshold);
+
+            if ((pad.right || pad.axes[0].value > threshold) && !this._padRight) {
+                this._changeVol(type, 0.1);
+            }
+            this._padRight = (pad.right || pad.axes[0].value > threshold);
+        }
+
+        // Validation
+        if (pad.buttons[0].pressed && !this._padA) {
+            if (this.selectedIndex === 2) {
+                this._close();
+            }
+        }
+        this._padA = pad.buttons[0].pressed;
     }
 
     _createVolControls(x, y, type) {

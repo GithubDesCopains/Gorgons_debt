@@ -339,12 +339,13 @@ const LEVEL_DATA = {
 const MAX_RAY_BOUNCES = 3;    // [PETRIFY RAY] limite de rebonds sur miroirs
 const RAY_DISPLAY_MS = 500;  // durée d'affichage du rayon (ms)
 
-const TILE = { FLOOR: 0, WALL: 1, WATER: 2 };
+const TILE = { FLOOR: 0, WALL: 1, WATER: 2, SACRED: 7, BLOCK_ONLY: 8 };
 
 const COLOR = {
   FLOOR: 0x3a2e1e,
   WALL: 0x1a1a2e,
   WATER: 0x0d47a1,
+  BLOCK_ONLY: 0x424242,
   WALL_BORDER: 0x0f0f20,
   GRID_LINE: 0x2a2018,
   PLAYER: 0x5b9bd5,

@@ -226,6 +226,13 @@
             border: 1px solid #1565c0;
         }
 
+        .ti-sacred {
+            background: #f0f0f0;
+            border: 1px solid #d4af37;
+            color: #d4af37;
+            font-weight: bold;
+        }
+
         .ti-mirA {
             background: #1a1610;
             border: 1px solid #d4af37;
@@ -330,23 +337,29 @@
         /* ── Toast ─────────────────────────────────────────────────────────────── */
         #toast {
             position: fixed;
-            bottom: 40px;
+            top: 30px;
             left: 50%;
-            transform: translateX(-50%);
-            background: var(--success);
+            transform: translateX(-50%) translateY(-20px);
+            background: rgba(30, 33, 48, 0.95);
+            backdrop-filter: blur(10px);
             color: #fff;
-            border-radius: 8px;
-            padding: 10px 22px;
-            font-size: 14px;
+            border-radius: 50px;
+            padding: 12px 30px;
+            font-size: 15px;
             font-weight: 600;
             pointer-events: none;
             opacity: 0;
-            transition: opacity .25s;
-            z-index: 1000;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.1);
+            transition: opacity 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 5000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
         #toast.show {
             opacity: 1;
+            transform: translateX(-50%) translateY(0);
         }
 
         /* ── Export Overlay ─────────────────────────────────────────────────── */
@@ -457,6 +470,9 @@
                 <button class="tool-btn" data-tool="water" title="Eau">
                     <div class="tool-icon ti-water">〜</div>Eau
                 </button>
+                <button class="tool-btn" data-tool="sacred" title="Case Sacrée">
+                    <div class="tool-icon ti-sacred">❖</div>Sacrée
+                </button>
 
                 <div class="sep"></div>
                 <div class="tool-section-label">Entités</div>
@@ -561,18 +577,20 @@
         //  CONSTANTES & ÉTAT
         // ─────────────────────────────────────────────────────────────────────────
 
-        const TILE = { FLOOR: 0, WALL: 1, WATER: 2 };
+        const TILE = { FLOOR: 0, WALL: 1, WATER: 2, SACRED: 7 };
         const ENTITY_TOOLS = new Set(['springU', 'springD', 'springL', 'springR', 'mirrorA', 'mirrorB', 'hammerU', 'hammerD', 'hammerL', 'hammerR', 'enemy', 'player', 'exit', 'item', 'spawner', 'statue', 'pusher_enemy']);
 
         const TILE_COLORS = {
             0: '#3a2e1e',  // sol
             1: '#1a1a2e',  // mur
             2: '#0d47a1',  // eau
+            7: '#f0f0f0',  // sacrée
         };
         const TILE_BORDER = {
             0: '#4a3e2e',
             1: '#2a2a50',
             2: '#1565c0',
+            7: '#d4af37',
         };
         const ENTITY_RENDER = {
             springU: { bg: '#2e1e0a', fill: '#e67e22', label: '⇑' },
@@ -594,7 +612,7 @@
             pusher_enemy: { bg: '#2e0d0a', fill: '#ff4400', label: '♉' },
         };
         const TOOL_LABELS = {
-            floor: 'Sol', wall: 'Mur', water: 'Eau',
+            floor: 'Sol', wall: 'Mur', water: 'Eau', sacred: 'Case Sacrée',
             springU: 'Ressort Haut', springD: 'Ressort Bas',
             springL: 'Ressort Gauche', springR: 'Ressort Droite',
             mirrorA: 'Miroir /', mirrorB: 'Miroir \\',
@@ -775,7 +793,8 @@
                 entities[r][c] = null;
                 map[r][c] = tool === 'floor' ? TILE.FLOOR
                     : tool === 'wall' ? TILE.WALL
-                        : TILE.WATER;
+                        : tool === 'water' ? TILE.WATER
+                            : TILE.SACRED;
             }
             drawCell(c, r);
         }
@@ -858,14 +877,18 @@
             });
         }
 
-        // Toast helper (color paramétrable)
+        // Toast helper (réutilisé plus bas)
         function showToast(msg, color) {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.style.background = color || '#27ae60';
-            t.classList.add('show');
-            clearTimeout(t._timer);
-            t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+            if (typeof window.showToastInternal === 'function') {
+                window.showToastInternal(msg, color);
+            } else {
+                const t = document.getElementById('toast');
+                t.textContent = msg;
+                t.style.background = color || '#27ae60';
+                t.classList.add('show');
+                clearTimeout(t._timer);
+                t._timer = setTimeout(() => t.classList.remove('show'), 2200);
+            }
         }
 
         // ─────────────────────────────────────────────────────────────────────────
@@ -1004,7 +1027,7 @@
                 for (let r = 0; r < rows; r++) {
                     for (let c = 0; c < cols; c++) {
                         const val = data.mapData[r][c];
-                        if (val <= 2) {
+                        if (val <= 2 || val === 7) {
                             map[r][c] = val;
                             entities[r][c] = null;
                         } else {
@@ -1036,67 +1059,105 @@
         });
 
         document.getElementById('btn-save-global').addEventListener('click', () => {
-            const num = parseInt(document.getElementById('levelSelector').value, 10);
-            const currentLevelData = buildJSON();
+            console.log("--- SAVE PROCESS START ---");
+            try {
+                const num = parseInt(document.getElementById('levelSelector').value, 10);
+                console.log("Level Selector Num:", num);
+                
+                const currentLevelData = buildJSON();
+                console.log("buildJSON() success:", !!currentLevelData);
 
-            // On convertit le JSON interne vers le format matriciel pour coller au style
-            const matrixLevel = {
-                level_id: num,
-                name: document.getElementById('levelName').value || `Niveau ${num}`,
-                tutorial_tip: document.getElementById('levelTip').value || "",
-                mapData: [],
-                gemsRequired: parseInt(document.getElementById('levelGems').value, 10) || 0
-            };
+                // On convertit le JSON interne vers le format matriciel pour coller au style
+                const matrixLevel = {
+                    level_id: num,
+                    name: document.getElementById('levelName').value || `Niveau ${num}`,
+                    tutorial_tip: document.getElementById('levelTip').value || "",
+                    mapData: [],
+                    gemsRequired: parseInt(document.getElementById('levelGems').value, 10) || 0
+                };
 
-            for (let r = 0; r < rows; r++) {
-                matrixLevel.mapData[r] = [];
-                for (let c = 0; c < cols; c++) {
-                    const t = map[r][c];
-                    const e = entities[r][c];
-                    if (e) {
-                        if (e.type === 'enemy') matrixLevel.mapData[r][c] = 3;
-                        else if (e.type === 'item') matrixLevel.mapData[r][c] = 4;
-                        else if (e.type === 'player') matrixLevel.mapData[r][c] = 5;
-                        else if (e.type === 'exit') matrixLevel.mapData[r][c] = 6;
-                        else matrixLevel.mapData[r][c] = t; // fallback pour entités complexes (non gérées par matrix)
-                    } else {
-                        matrixLevel.mapData[r][c] = t;
+                for (let r = 0; r < rows; r++) {
+                    matrixLevel.mapData[r] = [];
+                    for (let c = 0; c < cols; c++) {
+                        const t = map[r][c];
+                        const e = entities[r][c];
+                        if (e) {
+                            if (e.type === 'enemy') matrixLevel.mapData[r][c] = 3;
+                            else if (e.type === 'item') matrixLevel.mapData[r][c] = 4;
+                            else if (e.type === 'player') matrixLevel.mapData[r][c] = 5;
+                            else if (e.type === 'exit') matrixLevel.mapData[r][c] = 6;
+                            else matrixLevel.mapData[r][c] = t; 
+                        } else {
+                            matrixLevel.mapData[r][c] = t;
+                        }
                     }
                 }
-            }
+                console.log("Matrix conversion success");
 
-            // Mettre à jour GameLevels en mémoire
-            if (typeof GameLevels === 'undefined') window.GameLevels = {};
-            GameLevels[num] = matrixLevel;
+                // Mettre à jour GameLevels en mémoire
+                if (typeof GameLevels === 'undefined') {
+                    console.warn("GameLevels undefined, creating local object");
+                    window.GameLevels = {};
+                }
+                GameLevels[num] = matrixLevel;
 
-            // Fonction de formatage personnalisé pour un niveau
-            function formatLevelForExport(level) {
-                let s = "{\n";
-                s += `        "level_id": ${level.level_id},\n`;
-                s += `        "name": ${JSON.stringify(level.name)},\n`;
-                s += `        "tutorial_tip": ${JSON.stringify(level.tutorial_tip)},\n`;
-                s += `        "mapData": [\n`;
-                level.mapData.forEach((row, rIdx) => {
-                    s += `            [${row.join(', ')}]${rIdx < level.mapData.length - 1 ? ',' : ''}\n`;
+                // Fonction de formatage personnalisé pour un niveau
+                function formatLevelForExport(level) {
+                    if (!level) return "null";
+                    let s = "{\n";
+                    s += `        "level_id": ${level.level_id},\n`;
+                    s += `        "name": ${JSON.stringify(level.name)},\n`;
+                    s += `        "tutorial_tip": ${JSON.stringify(level.tutorial_tip)},\n`;
+                    s += `        "mapData": [\n`;
+                    level.mapData.forEach((row, rIdx) => {
+                        s += `            [${row.join(', ')}]${rIdx < level.mapData.length - 1 ? ',' : ''}\n`;
+                    });
+                    s += `        ],\n`;
+                    s += `        "gemsRequired": ${level.gemsRequired}\n`;
+                    s += "    }";
+                    return s;
+                }
+
+                // Générer le code complet pour Levels.js
+                let jsCode = `/**\n * Levels.js\n * Centralisation des données de niveaux pour le jeu et l'éditeur.\n */\n\nconst GameLevels = {\n`;
+
+                const keys = Object.keys(GameLevels).sort((a, b) => parseInt(a) - parseInt(b));
+                keys.forEach((k, idx) => {
+                    console.log("Formatting level:", k);
+                    jsCode += `    "${k}": ${formatLevelForExport(GameLevels[k])}${idx < keys.length - 1 ? ',' : ''}\n`;
                 });
-                s += `        ],\n`;
-                s += `        "gemsRequired": ${level.gemsRequired}\n`;
-                s += "    }";
-                return s;
+
+                jsCode += `};\n\n// Export pour usage global (Browser)\nif (typeof window !== 'undefined') {\n    window.GameLevels = GameLevels;\n}\n`;
+
+                document.getElementById('export-area').value = jsCode;
+                console.log("jsCode generation success, length:", jsCode.length);
+                
+                showToast('Sauvegarde en cours...', '#5b9bd5');
+
+                // Tenter la sauvegarde directe via le serveur Node
+                fetch('/save-levels', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ code: jsCode })
+                })
+                .then(response => {
+                    console.log("Server response status:", response.status);
+                    if (response.ok) {
+                        showToast('\u2713 Sauvegardé directement dans src/Levels.js', '#27ae60');
+                    } else {
+                        throw new Error('Serveur non configuré pour la sauvegarde');
+                    }
+                })
+                .catch(err => {
+                    console.error("Fetch error:", err);
+                    document.getElementById('export-overlay').style.display = 'flex';
+                    showToast('\u26A0 Sauvegarde manuelle requise', '#e67e22');
+                });
+
+            } catch (err) {
+                console.error("CRITICAL ERROR in save handler:", err);
+                alert("Erreur lors de la sauvegarde : " + err.message);
             }
-
-            // Générer le code complet pour Levels.js
-            let jsCode = `/**\n * Levels.js\n * Centralisation des données de niveaux pour le jeu et l'éditeur.\n */\n\nconst GameLevels = {\n`;
-
-            const keys = Object.keys(GameLevels).sort((a, b) => parseInt(a) - parseInt(b));
-            keys.forEach((k, idx) => {
-                jsCode += `    "${k}": ${formatLevelForExport(GameLevels[k])}${idx < keys.length - 1 ? ',' : ''}\n`;
-            });
-
-            jsCode += `};\n\n// Export pour usage global (Browser)\nif (typeof window !== 'undefined') {\n    window.GameLevels = GameLevels;\n}\n`;
-
-            document.getElementById('export-area').value = jsCode;
-            document.getElementById('export-overlay').style.display = 'flex';
         });
 
         function copyExportToClipboard() {
@@ -1105,6 +1166,24 @@
             document.execCommand('copy');
             showToast('Code source copié !');
         }
+
+        // Toast helper (implémentation enrichie)
+        window.showToastInternal = function(msg, color) {
+            const t = document.getElementById('toast');
+            if (!t) return;
+            // Si le message contient un crochet de validation, on met l'icône en vert
+            t.innerHTML = msg.includes('\u2713') 
+                ? `<span style="color:#27ae60">\u2713</span> ${msg.replace('\u2713', '')}` 
+                : (msg.includes('\u26A0') ? `<span style="color:#e67e22">\u26A0</span> ${msg.replace('\u26A0', '')}` : msg);
+            
+            t.style.borderLeft = `4px solid ${color || '#27ae60'}`;
+            // On s'assure que le style est réinitialisé si besoin
+            t.style.background = 'rgba(30, 33, 48, 0.95)';
+
+            t.classList.add('show');
+            clearTimeout(t._timer);
+            t._timer = setTimeout(() => t.classList.remove('show'), 3500);
+        };
 
         // ─────────────────────────────────────────────────────────────────────────
         //  START

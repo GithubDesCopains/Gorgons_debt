@@ -133,6 +133,7 @@ class MenuScene extends Phaser.Scene {
     }
 
     _createButtons() {
+        this.buttons = [];
         const btnStart = this._makeButton(0, 0, "DÉMARRER", () => this._startGame());
         const btnLevels = this._makeButton(0, 80, "NIVEAUX", () => {
             this.scene.start('LevelSelectScene');
@@ -141,7 +142,59 @@ class MenuScene extends Phaser.Scene {
             this.scene.launch('OptionsScene');
         });
 
-        this.btnContainer.add([btnStart, btnLevels, btnOptions]);
+        this.buttons = [btnStart, btnLevels, btnOptions];
+        this.btnContainer.add(this.buttons);
+        this.selectedIndex = 0;
+        this._updateButtonVisuals();
+    }
+
+    _updateButtonVisuals() {
+        this.buttons.forEach((btn, index) => {
+            const isSelected = (index === this.selectedIndex);
+            btn.setScale(isSelected ? 1.1 : 1.0);
+            // On peut aussi changer la couleur de la bordure si on veut, 
+            // mais un simple scale suffit souvent.
+        });
+    }
+
+    update() {
+        // Gestion Gamepad pour le menu
+        const pad = this.input.gamepad ? this.input.gamepad.pad1 : null;
+        if (pad) {
+            // Empêcher le déclenchement immédiat si le bouton est déjà maintenu (ex: retour de pause)
+            if (this._firstGamepadUpdate === undefined) {
+                this._padAPressed = pad.buttons[0].pressed;
+                this._padUpPressed = (pad.up || pad.axes[1].value < -0.5);
+                this._padDownPressed = (pad.down || pad.axes[1].value > 0.5);
+                this._firstGamepadUpdate = false;
+            }
+
+            const threshold = 0.5;
+            
+            // Navigation Haut/Bas
+            if ((pad.up || pad.axes[1].value < -threshold) && !this._padUpPressed) {
+                this.selectedIndex = (this.selectedIndex - 1 + this.buttons.length) % this.buttons.length;
+                this._updateButtonVisuals();
+                this._playHoverSound();
+            }
+            this._padUpPressed = (pad.up || pad.axes[1].value < -threshold);
+
+            if ((pad.down || pad.axes[1].value > threshold) && !this._padDownPressed) {
+                this.selectedIndex = (this.selectedIndex + 1) % this.buttons.length;
+                this._updateButtonVisuals();
+                this._playHoverSound();
+            }
+            this._padDownPressed = (pad.down || pad.axes[1].value > threshold);
+
+            // Validation (Bouton A)
+            if (pad.buttons[0].pressed && !this._padAPressed) {
+                const btn = this.buttons[this.selectedIndex];
+                if (btn && btn.getData('callback')) {
+                    btn.getData('callback')();
+                }
+            }
+            this._padAPressed = pad.buttons[0].pressed;
+        }
     }
 
     _makeButton(x, y, label, callback) {
@@ -160,6 +213,7 @@ class MenuScene extends Phaser.Scene {
         const container = this.add.container(x, y, [bg, text]);
         container.setSize(300, 60);
         container.setInteractive({ useHandCursor: true });
+        container.setData('callback', callback);
 
         container.on('pointerover', () => {
             this.tweens.add({ targets: container, scale: 1.1, duration: 200, ease: 'Back.easeOut' });
@@ -176,6 +230,7 @@ class MenuScene extends Phaser.Scene {
     }
 
     _startGame() {
+        console.log("MenuScene _startGame called");
         // Fondu au noir avant de changer
         this.cameras.main.fadeOut(1000, 0, 0, 0);
         this.cameras.main.once('camerafadeoutcomplete', () => {

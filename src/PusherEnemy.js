@@ -118,7 +118,7 @@ class PusherEnemy extends Enemy {
                         return { statue, dir: d };
                     }
                     const tile = this.scene.map[py][px];
-                    if (tile === TILE.WALL || tile === TILE.WATER) break;
+                    if (tile === TILE.WALL || tile === TILE.WATER || tile === TILE.SACRED) break;
                     px += d.dx;
                     py += d.dy;
                 }
@@ -140,7 +140,7 @@ class PusherEnemy extends Enemy {
             onComplete: () => {
                 this.moving = false;
                 this.scene.tryPushStatue(statue.gridX, statue.gridY, this.dir.dx, this.dir.dy);
-                this._scheduleAI(500); // Délai après poussée
+                this._scheduleAI(700); // Délai après poussée - augmenté de 500 à 700
             }
         });
     }

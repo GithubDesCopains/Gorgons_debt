@@ -58,6 +58,13 @@ class PetrifyRay {
         return;
       }
 
+      // [BOSS] Hecatonchire → stop without effect
+      if (this.scene.boss && this.scene.boss.gridX === x && this.scene.boss.gridY === y) {
+        const endPx = gridToPixel(x, y);
+        this.segments.push({ x1: startPx.x, y1: startPx.y, x2: endPx.x, y2: endPx.y });
+        return;
+      }
+
       // Ennemi → pétrifier (si vivant) ou rafraîchir (si déjà pierre) et arrêter
       const enemy = this.scene.enemies.find(e => e.gridX === x && e.gridY === y);
       if (enemy) {

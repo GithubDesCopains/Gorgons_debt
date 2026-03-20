@@ -6,10 +6,10 @@ const AI_STATE = { PATROL: 'PATROL', CHASE: 'CHASE', PETRIFIED: 'PETRIFIED' };
 
 // Paramètres de tuning (ms)
 const AI = {
-  MOVE_DURATION: 320,   // durée d'un pas (tween)
-  PATROL_TICK: 380,   // délai entre deux pas en patrouille
+  MOVE_DURATION: 400,   // durée d'un pas (tween) - ralenti de 320 à 400
+  PATROL_TICK: 500,   // délai entre deux pas en patrouille - ralenti de 380 à 500
   PATROL_WAIT: 1000,  // pause quand l'ennemi frappe un mur
-  CHASE_TICK: 280,   // délai entre deux pas en chasse
+  CHASE_TICK: 350,   // délai entre deux pas en chasse - ralenti de 280 à 350
   CHASE_RANGE: 5,     // portée de détection (distance Manhattan)
 };
 
@@ -197,7 +197,9 @@ class Enemy {
     let err = dx - dy;
     while (true) {
       if (!(x0 === this.gridX && y0 === this.gridY)) {
-        if (this.scene.map[y0]?.[x0] === TILE.WALL) return false;
+        if (this.scene.map[y0]?.[x0] === TILE.WALL || 
+            this.scene.map[y0]?.[x0] === TILE.SACRED ||
+            this.scene.map[y0]?.[x0] === TILE.BLOCK_ONLY) return false;
         if (this.scene.spinners?.some(s => (s.gridX === x0 && s.gridY === y0) || (s.gridX + s.armDir.dx === x0 && s.gridY + s.armDir.dy === y0))) return false;
       }
       if (x0 === x1 && y0 === y1) break;
@@ -245,7 +247,7 @@ class Enemy {
   _canMoveTo(nx, ny) {
     if (nx < 0 || nx >= GRID_COLS || ny < 0 || ny >= GRID_ROWS) return false;
     const t = this.scene.map[ny][nx];
-    if (t === TILE.WALL || t === TILE.WATER) return false;
+    if (t === TILE.WALL || t === TILE.WATER || t === TILE.SACRED || t === TILE.BLOCK_ONLY) return false;
     if (this.scene.enemies.some(e => e !== this && e.gridX === nx && e.gridY === ny)) return false;
     if (this.scene.spinners?.some(s => (s.gridX === nx && s.gridY === ny) || (s.gridX + s.armDir.dx === nx && s.gridY + s.armDir.dy === ny))) return false;
     return true;

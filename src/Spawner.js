@@ -60,7 +60,7 @@ class Spawner {
   _summonEffect() {
     const targetY = this.gridY + 1;
     // Vérifier si la case DEVANT le spawner est libre pour invoquer
-    if (targetY >= GRID_ROWS || this.scene.map[targetY]?.[this.gridX] === TILE.WALL || this.scene.map[targetY]?.[this.gridX] === TILE.WATER) {
+    if (targetY >= GRID_ROWS || this.scene.map[targetY]?.[this.gridX] === TILE.WALL || this.scene.map[targetY]?.[this.gridX] === TILE.WATER || this.scene.map[targetY]?.[this.gridX] === TILE.SACRED) {
       // Case bloquée → réessayer plus tard
       this._scheduleCheck(2000);
       return;
@@ -94,7 +94,7 @@ class Spawner {
 
   _spawnEnemy(targetY) {
     // Revérifier au cas où la case aurait été occupée entre-temps
-    if (this.scene.map[targetY]?.[this.gridX] === TILE.WALL || this.scene.map[targetY]?.[this.gridX] === TILE.WATER) {
+    if (this.scene.map[targetY]?.[this.gridX] === TILE.WALL || this.scene.map[targetY]?.[this.gridX] === TILE.WATER || this.scene.map[targetY]?.[this.gridX] === TILE.SACRED) {
       this._scheduleCheck(1000);
       return;
     }

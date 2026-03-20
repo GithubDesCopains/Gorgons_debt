@@ -12,7 +12,11 @@ class HUDScene extends Phaser.Scene {
     }
 
     create() {
-        // 1. Médaillon du Héros
+        // 1. Boss Life Bar (Hidden by default)
+        this.bossBar = this.add.container(this.scale.width / 2, 80).setVisible(false);
+        this._createBossHealthUI();
+
+        // 2. Médaillon du Héros
         this.medallion = this.add.container(60, 60);
 
         // Cadre du médaillon
@@ -87,6 +91,54 @@ class HUDScene extends Phaser.Scene {
         if (data.itemsCollected !== undefined) {
             this.itemText.setText(`◆ ÉCLATS : ${data.itemsCollected} / ${data.itemsTotal}`);
         }
+        if (data.bossVisible !== undefined) {
+            this.bossBar.setVisible(data.bossVisible);
+        }
+        if (data.bossHP !== undefined) {
+            this._updateBossBar(data.bossHP);
+        }
+    }
+
+    _createBossHealthUI() {
+        const width = 400;
+        const height = 24;
+
+        // Shadow/Glow
+        const glow = this.add.graphics();
+        glow.fillStyle(0x00ffcc, 0.2);
+        glow.fillRoundedRect(-width / 2 - 4, -height / 2 - 4, width + 8, height + 8, 4);
+
+        // Background
+        const bg = this.add.graphics();
+        bg.fillStyle(0x222222, 0.8);
+        bg.fillRoundedRect(-width / 2, -height / 2, width, height, 4);
+        bg.lineStyle(2, 0x00ffcc, 1);
+        bg.strokeRoundedRect(-width / 2, -height / 2, width, height, 4);
+
+        // Bar
+        this.bossInnerBar = this.add.graphics();
+        this._updateBossBar(1.0);
+
+        const label = this.add.text(0, -25, "HECATONCHIRE", {
+            fontFamily: 'serif',
+            fontSize: '20px',
+            color: '#00ffcc',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+
+        this.bossBar.add([glow, bg, this.bossInnerBar, label]);
+    }
+
+    _updateBossBar(pct) {
+        const width = 396;
+        const height = 20;
+        this.bossInnerBar.clear();
+        
+        // Gradient or Color-based on status
+        const color = pct > 0.4 ? 0x00ffcc : 0xff3300;
+        this.bossInnerBar.fillStyle(color, 1);
+        this.bossInnerBar.fillRoundedRect(-width / 2, -height / 2, width * pct, height, 2);
     }
 
     _createPauseButton() {
@@ -128,13 +180,56 @@ class HUDScene extends Phaser.Scene {
             color: '#00ffcc'
         }).setOrigin(0.5);
 
-        const btnResume = this._makeMenuButton(0, -10, "REPRENDRE", () => this._togglePause());
-        const btnOptions = this._makeMenuButton(0, 40, "OPTIONS", () => {
-            this.scene.launch('OptionsScene');
-        });
-        const btnQuit = this._makeMenuButton(0, 90, "QUITTER", () => this._quitGame());
+        this.pauseButtons = [
+            this._makeMenuButton(0, -10, "REPRENDRE", () => this._togglePause()),
+            this._makeMenuButton(0, 40, "OPTIONS", () => this.scene.launch('OptionsScene')),
+            this._makeMenuButton(0, 90, "QUITTER", () => this._quitGame())
+        ];
 
-        this.pauseMenu.add([bg, panel, title, btnResume, btnOptions, btnQuit]);
+        this.pauseMenu.add([bg, panel, title, ...this.pauseButtons]);
+        this.pauseSelectedIndex = 0;
+    }
+
+    _updatePauseVisuals() {
+        this.pauseButtons.forEach((btn, index) => {
+            const isSelected = index === this.pauseSelectedIndex;
+            btn.setColor(isSelected ? '#ffffff' : '#00ffcc');
+            btn.setScale(isSelected ? 1.2 : 1.0);
+        });
+    }
+
+    update() {
+        const pad = this.input.gamepad ? this.input.gamepad.pad1 : null;
+        if (!pad) return;
+
+        // Toggle Pause (Bouton Options/Start = 9 sur une manette Xbox standard)
+        if (pad.buttons[9].pressed && !this._padStartPressed) {
+            this._togglePause();
+        }
+        this._padStartPressed = pad.buttons[9].pressed;
+
+        // Si le menu est ouvert, gérer la navigation
+        if (this.pauseMenu.visible) {
+            const threshold = 0.5;
+
+            if ((pad.up || pad.axes[1].value < -threshold) && !this._padUp) {
+                this.pauseSelectedIndex = (this.pauseSelectedIndex - 1 + 3) % 3;
+                this._updatePauseVisuals();
+            }
+            this._padUp = (pad.up || pad.axes[1].value < -threshold);
+
+            if ((pad.down || pad.axes[1].value > threshold) && !this._padDown) {
+                this.pauseSelectedIndex = (this.pauseSelectedIndex + 1) % 3;
+                this._updatePauseVisuals();
+            }
+            this._padDown = (pad.down || pad.axes[1].value > threshold);
+
+            if (pad.buttons[0].pressed && !this._padA) {
+                const btn = this.pauseButtons[this.pauseSelectedIndex];
+                if (btn && btn.getData('callback')) btn.getData('callback')();
+            }
+            this._padA = pad.buttons[0].pressed;
+        }
     }
 
     _makeMenuButton(x, y, label, callback) {
@@ -144,6 +239,7 @@ class HUDScene extends Phaser.Scene {
             color: '#00ffcc'
         }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
+        txt.setData('callback', callback);
         txt.on('pointerover', () => txt.setColor('#ffffff'));
         txt.on('pointerout', () => txt.setColor('#00ffcc'));
         txt.on('pointerdown', callback);
@@ -163,6 +259,7 @@ class HUDScene extends Phaser.Scene {
     }
 
     _quitGame() {
+        console.log("HUDScene _quitGame called");
         const gameMusic = this.sound.get('gameMusic');
         if (gameMusic && gameMusic.isPlaying) {
             this.tweens.add({

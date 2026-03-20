@@ -24,21 +24,24 @@ class Player {
    * Simple mise à jour visuelle (orientation/échelle).
    */
   _updateAnimation() {
-    let scale = 1.0;
+    let animKey = 'player-idle-down';
+    if (this.dir.dy === -1) animKey = 'player-idle-up';
+    else if (this.dir.dx === 1) animKey = 'player-idle-right';
+    else if (this.dir.dx === -1) animKey = 'player-idle-left';
 
-    // Ajustement de l'échelle si nécessaire pour que le héros tienne dans une tuile
-    // On suppose que l'image fait ~TILE_SIZE ou un peu plus
-    const targetHeight = TILE_SIZE * 1.2;
-    scale = targetHeight / this.sprite.height;
-
-    this.sprite.setScale(scale);
-
-    // Miroir horizontal basé sur la direction
-    if (this.dir.dx === -1) {
-      this.sprite.setFlipX(true);
-    } else if (this.dir.dx === 1) {
-      this.sprite.setFlipX(false);
+    if (this.moving) {
+      if (this.dir.dy === -1) animKey = 'player-walk-up';
+      else if (this.dir.dy === 1) animKey = 'player-walk-down';
+      else if (this.dir.dx === 1) animKey = 'player-walk-right';
+      else if (this.dir.dx === -1) animKey = 'player-walk-left';
     }
+
+    this.sprite.play(animKey, true);
+
+    // Ajustement de l'échelle pour que le héros tienne dans une tuile
+    const targetHeight = TILE_SIZE * 1.2;
+    const scale = targetHeight / this.sprite.height;
+    this.sprite.setScale(scale);
 
     // Profondeur dynamique pour le tri Z (basé sur la case Y)
     this.sprite.setDepth(this.gridY * 10 + 5);
@@ -58,6 +61,7 @@ class Player {
     const tile = this.scene.map[ny][nx];
     if (tile === TILE.WALL) return;
     if (tile === TILE.WATER) return;
+    if (tile === TILE.BLOCK_ONLY) return;
 
     if (this.scene.tryPushStatue(nx, ny, dx, dy)) return;
 
@@ -77,7 +81,8 @@ class Player {
         const success = spinner.rotatePlayer(dx, dy);
         if (success) {
           this.moving = true;
-          this.scene.time.delayedCall(250, () => { this.moving = false; });
+          this._updateAnimation();
+          this.scene.time.delayedCall(250, () => { this.moving = false; this._updateAnimation(); });
           return;
         } else {
           return;
@@ -88,6 +93,7 @@ class Player {
     this.gridX = nx;
     this.gridY = ny;
     this.moving = true;
+    this._updateAnimation();
 
     const target = gridToPixel(nx, ny);
     this.scene.tweens.add({
@@ -98,6 +104,7 @@ class Player {
       ease: 'Quad.easeInOut',
       onComplete: () => {
         this.moving = false;
+        this._updateAnimation(); // Retour à l'idle
         this.scene.checkEnemyCollision();
         this.scene.checkItemPickup();
         this.scene.checkExitDoor();
