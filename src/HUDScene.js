@@ -8,7 +8,7 @@ class HUDScene extends Phaser.Scene {
     }
 
     preload() {
-        this.load.image('hero_portrait', 'hero_portrait.png');
+        // Portrait retiré pour libérer l'espace visuel
     }
 
     create() {
@@ -16,31 +16,8 @@ class HUDScene extends Phaser.Scene {
         this.bossBar = this.add.container(this.scale.width / 2, 80).setVisible(false);
         this._createBossHealthUI();
 
-        // 2. Médaillon du Héros
-        this.medallion = this.add.container(60, 60);
-
-        // Cadre du médaillon
-        const frame = this.add.graphics();
-        frame.fillStyle(0x333333, 0.8);
-        frame.fillCircle(0, 0, 50);
-        frame.lineStyle(4, 0x00ffcc, 1);
-        frame.strokeCircle(0, 0, 50);
-
-        // Portrait
-        const portrait = this.add.image(0, 0, 'hero_portrait');
-        portrait.setDisplaySize(90, 90);
-
-        // Masque circulaire pour le portrait
-        const maskShape = this.add.graphics();
-        maskShape.fillCircle(60, 60, 45);
-        maskShape.setVisible(false);
-        const mask = maskShape.createGeometryMask();
-        portrait.setMask(mask);
-
-        this.medallion.add([frame, portrait]);
-
-        // 2. Infos Niveau
-        this.levelNameText = this.add.text(120, 15, "NIVEAU", {
+        // 2. Infos Niveau (Repositionnées en haut à gauche)
+        this.levelNameText = this.add.text(20, 20, "NIVEAU", {
             fontFamily: 'serif',
             fontSize: '28px',
             color: '#ffd700',
@@ -48,7 +25,7 @@ class HUDScene extends Phaser.Scene {
             strokeThickness: 4
         });
 
-        this.itemText = this.add.text(120, 50, "◆ ÉCLATS : 0 / 0", {
+        this.itemText = this.add.text(20, 55, "◆ ÉCLATS : 0 / 0", {
             fontFamily: 'monospace',
             fontSize: '18px',
             color: '#00ffcc',

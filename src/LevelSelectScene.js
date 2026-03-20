@@ -48,6 +48,10 @@ class LevelSelectScene extends Phaser.Scene {
 
         this.selectedIndex = 0; // Index dans levelButtons, ou -1 pour btnBack
         this._updateVisuals();
+
+        // Verrouillage de l'input au démarrage (300ms) pour éviter les triggers fantômes
+        this.allowInput = false;
+        this.time.delayedCall(300, () => { this.allowInput = true; });
     }
 
     _updateVisuals() {
@@ -62,6 +66,8 @@ class LevelSelectScene extends Phaser.Scene {
     }
 
     update() {
+        if (!this.allowInput) return;
+
         const pad = this.input.gamepad ? this.input.gamepad.pad1 : null;
         if (!pad) return;
 

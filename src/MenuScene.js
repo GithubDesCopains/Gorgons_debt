@@ -63,6 +63,10 @@ class MenuScene extends Phaser.Scene {
             volume: targetVol,
             duration: 1000
         });
+
+        // Verrouillage de l'input au démarrage (300ms) pour éviter les triggers fantômes
+        this.allowInput = false;
+        this.time.delayedCall(300, () => { this.allowInput = true; });
     }
 
     _triggerStorm() {
@@ -158,6 +162,8 @@ class MenuScene extends Phaser.Scene {
     }
 
     update() {
+        if (!this.allowInput) return;
+
         // Gestion Gamepad pour le menu
         const pad = this.input.gamepad ? this.input.gamepad.pad1 : null;
         if (pad) {

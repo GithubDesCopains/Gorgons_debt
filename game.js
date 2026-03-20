@@ -404,6 +404,14 @@ class GameScene extends Phaser.Scene {
     this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
     this.cameras.main.startFollow(this.player.sprite, true, 0.10, 0.10);
     this.cameras.main.setZoom(1.0);
+
+    // Centrage de la zone de jeu si elle est plus petite que l'écran
+    if (WORLD_W < this.scale.width) {
+      this.cameras.main.x = (this.scale.width - WORLD_W) / 2;
+    }
+    if (WORLD_H < this.scale.height) {
+      this.cameras.main.y = (this.scale.height - WORLD_H) / 2;
+    }
   }
 
   // ── Inputs ─────────────────────────────────────────────────────────────────
