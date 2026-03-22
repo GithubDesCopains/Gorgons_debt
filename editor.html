@@ -149,23 +149,26 @@
 
         /* ── Sidebar ───────────────────────────────────────────────────────────── */
         #sidebar {
-            width: 92px;
+            width: 210px;
             flex-shrink: 0;
             background: var(--bg-panel);
             border-right: 1px solid var(--border);
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-auto-rows: min-content;
             gap: 4px;
-            padding: 10px 8px;
+            padding: 10px 6px;
             overflow-y: auto;
+            align-content: start;
         }
 
         .tool-section-label {
+            grid-column: span 3;
             font-size: 10px;
             letter-spacing: .08em;
             color: var(--text-dim);
             text-transform: uppercase;
-            padding: 6px 4px 2px;
+            padding: 8px 4px 2px;
             font-weight: 600;
         }
 
@@ -174,18 +177,19 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 4px;
-            padding: 8px 4px;
+            gap: 2px;
+            padding: 5px 2px;
             border-radius: var(--radius);
             cursor: pointer;
             border: 1.5px solid transparent;
             background: transparent;
             color: var(--text);
-            font-size: 11px;
+            font-size: 10px;
             font-family: var(--font);
             transition: background .12s, border-color .12s;
             text-align: center;
             width: 100%;
+            min-height: 60px;
         }
 
         .tool-btn:hover {
@@ -200,13 +204,13 @@
         }
 
         .tool-icon {
-            width: 36px;
-            height: 36px;
+            width: 32px;
+            height: 32px;
             border-radius: 6px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 16px;
             flex-shrink: 0;
         }
 
@@ -281,19 +285,14 @@
         }
 
         .sep {
+            grid-column: span 3;
             height: 1px;
             background: var(--border);
             margin: 4px 0;
         }
 
-        #zoom-display {
-            font-size: 12px;
-            color: var(--text-dim);
-            text-align: center;
-            margin-top: 4px;
-        }
-
         .zoom-row {
+            grid-column: span 3;
             display: flex;
             gap: 4px;
         }
@@ -302,6 +301,14 @@
             flex: 1;
             padding: 4px;
             font-size: 14px;
+        }
+
+        #zoom-display {
+            grid-column: span 3;
+            font-size: 12px;
+            color: var(--text-dim);
+            text-align: center;
+            margin-top: 4px;
         }
 
         /* ── Canvas area ───────────────────────────────────────────────────────── */
@@ -337,7 +344,7 @@
         /* ── Toast ─────────────────────────────────────────────────────────────── */
         #toast {
             position: fixed;
-            top: 30px;
+            top: 80px;
             left: 50%;
             transform: translateX(-50%) translateY(-20px);
             background: rgba(30, 33, 48, 0.95);
@@ -460,7 +467,6 @@
             <!-- Sidebar -->
             <div id="sidebar">
                 <div class="tool-section-label">Tuiles</div>
-
                 <button class="tool-btn" data-tool="floor" title="Sol (gomme)">
                     <div class="tool-icon ti-floor">·</div>Sol
                 </button>
@@ -473,72 +479,40 @@
                 <button class="tool-btn" data-tool="sacred" title="Case Sacrée">
                     <div class="tool-icon ti-sacred">❖</div>Sacrée
                 </button>
+                <button class="tool-btn" data-tool="block_only" title="Bloc uniquement">
+                    <div class="tool-icon ti-block" style="background:#555;font-size:10px;">■</div>Bloc
+                </button>
 
                 <div class="sep"></div>
-                <div class="tool-section-label">Entités</div>
+                <div class="tool-section-label">Ressorts</div>
+                <button class="tool-btn" data-tool="springU" title="Ressort Haut"><div class="tool-icon ti-spring">⇑</div>⇑</button>
+                <button class="tool-btn" data-tool="springD" title="Ressort Bas"><div class="tool-icon ti-spring">⇓</div>⇓</button>
+                <button class="tool-btn" data-tool="springL" title="Ressort Gauche"><div class="tool-icon ti-spring">⇐</div>⇐</button>
+                <button class="tool-btn" data-tool="springR" title="Ressort Droite"><div class="tool-icon ti-spring">⇒</div>⇒</button>
 
-                <button class="tool-btn" data-tool="springU" title="Ressort Haut">
-                    <div class="tool-icon ti-spring">⇑</div>Ressort Haut
-                </button>
-                <button class="tool-btn" data-tool="springD" title="Ressort Bas">
-                    <div class="tool-icon ti-spring">⇓</div>Ressort Bas
-                </button>
-                <button class="tool-btn" data-tool="springL" title="Ressort Gauche">
-                    <div class="tool-icon ti-spring">⇐</div>Ressort Gauche
-                </button>
-                <button class="tool-btn" data-tool="springR" title="Ressort Droite">
-                    <div class="tool-icon ti-spring">⇒</div>Ressort Droite
-                </button>
+                <div class="sep"></div>
+                <div class="tool-section-label">Mécanismes</div>
+                <button class="tool-btn" data-tool="hammerCW" title="Marteau Horaire"><div class="tool-icon" style="background:#2a2e35;border:1px solid #5a6370;color:#a3b1c6;font-size:16px;">↻</div>↻</button>
+                <button class="tool-btn" data-tool="hammerCCW" title="Marteau Anti-Hora"><div class="tool-icon" style="background:#2a2e35;border:1px solid #5a6370;color:#a3b1c6;font-size:16px;">↺</div>↺</button>
+                <button class="tool-btn" data-tool="mirrorA" title="Miroir /"><div class="tool-icon ti-mirA">/</div>/</button>
+                <button class="tool-btn" data-tool="mirrorB" title="Miroir \"><div class="tool-icon ti-mirB">\</div>\</button>
+                <button class="tool-btn" data-tool="spikes" title="Pics (Trap)"><div class="tool-icon" style="background:#2c3e50;border:1px solid #bdc3c7;color:#bdc3c7;font-size:16px;">⚠</div>Pics</button>
 
-                <button class="tool-btn" data-tool="mirrorA" title="Miroir / (montant)">
-                    <div class="tool-icon ti-mirA">/</div>Miroir /
-                </button>
-                <button class="tool-btn" data-tool="mirrorB" title="Miroir \ (descendant)">
-                    <div class="tool-icon ti-mirB">\</div>Miroir \
-                </button>
-                <button class="tool-btn" data-tool="hammerCW" title="Marteau Horaire (3x3)">
-                    <div class="tool-icon"
-                        style="background:#2a2e35;border:1px solid #5a6370;color:#a3b1c6;font-size:20px;">↻</div>Marteau
-                    ↻
-                </button>
-                <button class="tool-btn" data-tool="hammerCCW" title="Marteau Anti-Horaire (3x3)">
-                    <div class="tool-icon"
-                        style="background:#2a2e35;border:1px solid #5a6370;color:#a3b1c6;font-size:20px;">↺</div>Marteau
-                    ↺
-                </button>
-                <button class="tool-btn" data-tool="enemy" title="Ennemi">
-                    <div class="tool-icon ti-enemy">◆</div>Ennemi
-                </button>
-                <button class="tool-btn" data-tool="pusher_enemy" title="Ennemi Pousseur">
-                    <div class="tool-icon ti-pusher">♉</div>Pousseur
-                </button>
-                <button class="tool-btn" data-tool="player" title="Joueur (spawn)">
-                    <div class="tool-icon ti-player">☺</div>Joueur
-                </button>
-                <button class="tool-btn" data-tool="exit" title="Sortie">
-                    <div class="tool-icon ti-exit">🚪</div>Sortie
-                </button>
-                <button class="tool-btn" data-tool="item" title="Éclat de Miroir (collectible)">
-                    <div class="tool-icon ti-item">💎</div>Éclat
-                </button>
-                <button class="tool-btn" data-tool="spawner" title="Point d'invocation ennemi">
-                    <div class="tool-icon ti-spawner">🔷</div>Spawner
-                </button>
-                <button class="tool-btn" data-tool="statue" title="Bloc (Ennemi pétrifié)">
-                    <div class="tool-icon ti-statue">🗿</div>Bloc
-                </button>
-                <button class="tool-btn" data-tool="pressure_plate" title="Plaque (Générique)">
-                    <div class="tool-icon" style="background:#34495e;border:1px solid #7f8c8d;color:#2ecc71;font-size:18px;">⊞</div>Plate
-                </button>
-                <button class="tool-btn" data-tool="plate_door" title="Plaque -> Porte">
-                    <div class="tool-icon" style="background:#34495e;border:1px solid #7f8c8d;color:#27ae60;font-size:18px;">🚪</div>P. Porte
-                </button>
-                <button class="tool-btn" data-tool="plate_spikes" title="Plaque -> Pics">
-                    <div class="tool-icon" style="background:#34495e;border:1px solid #7f8c8d;color:#bdc3c7;font-size:18px;">⚠</div>P. Pics
-                </button>
-                <button class="tool-btn" data-tool="spikes" title="Pics (Trap)">
-                    <div class="tool-icon" style="background:#2c3e50;border:1px solid #bdc3c7;color:#bdc3c7;font-size:18px;">⚠</div>Pics
-                </button>
+                <div class="sep"></div>
+                <div class="tool-section-label">Plaques</div>
+                <button class="tool-btn" data-tool="pressure_plate" title="Plaque (Générique)"><div class="tool-icon" style="background:#34495e;border:1px solid #7f8c8d;color:#2ecc71;font-size:16px;">⊞</div>Plaque</button>
+                <button class="tool-btn" data-tool="plate_door" title="Plaque -> Porte"><div class="tool-icon" style="background:#34495e;border:1px solid #7f8c8d;color:#27ae60;font-size:16px;">🚪</div>P. Porte</button>
+                <button class="tool-btn" data-tool="plate_spikes" title="Plaque -> Pics"><div class="tool-icon" style="background:#34495e;border:1px solid #7f8c8d;color:#bdc3c7;font-size:16px;">⚠</div>P. Pics</button>
+
+                <div class="sep"></div>
+                <div class="tool-section-label">Acteurs</div>
+                <button class="tool-btn" data-tool="player" title="Joueur"><div class="tool-icon ti-player">☺</div>Joueur</button>
+                <button class="tool-btn" data-tool="enemy" title="Ennemi"><div class="tool-icon ti-enemy">◆</div>Ennemi</button>
+                <button class="tool-btn" data-tool="pusher_enemy" title="Ennemi Pousseur"><div class="tool-icon ti-pusher">♉</div>Pousse</button>
+                <button class="tool-btn" data-tool="spawner" title="Propulseur / Spawner"><div class="tool-icon ti-spawner">🔷</div>Spawn</button>
+                <button class="tool-btn" data-tool="statue" title="Bloc Statue"><div class="tool-icon ti-statue">🗿</div>Statue</button>
+                <button class="tool-btn" data-tool="exit" title="Sortie"><div class="tool-icon ti-exit">🚪</div>Sortie</button>
+                <button class="tool-btn" data-tool="item" title="Éclat de Miroir"><div class="tool-icon ti-item">💎</div>Éclat</button>
 
                 <div class="sep"></div>
                 <div class="tool-section-label">Zoom</div>
@@ -589,20 +563,22 @@
         //  CONSTANTES & ÉTAT
         // ─────────────────────────────────────────────────────────────────────────
 
-        const TILE = { FLOOR: 0, WALL: 1, WATER: 2, SACRED: 7 };
-        const ENTITY_TOOLS = new Set(['springU', 'springD', 'springL', 'springR', 'mirrorA', 'mirrorB', 'hammerU', 'hammerD', 'hammerL', 'hammerR', 'enemy', 'player', 'exit', 'item', 'spawner', 'statue', 'pusher_enemy', 'pressure_plate', 'plate_door', 'plate_spikes', 'spikes']);
+        const TILE = { FLOOR: 0, WALL: 1, WATER: 2, SACRED: 20, BLOCK_ONLY: 21 };
+        const ENTITY_TOOLS = new Set(['springU', 'springD', 'springL', 'springR', 'mirrorA', 'mirrorB', 'hammerU', 'hammerD', 'hammerL', 'hammerR', 'hammerCW', 'hammerCCW', 'enemy', 'player', 'exit', 'item', 'spawner', 'statue', 'pusher_enemy', 'pressure_plate', 'plate_door', 'plate_spikes', 'spikes']);
 
         const TILE_COLORS = {
             0: '#3a2e1e',  // sol
             1: '#1a1a2e',  // mur
             2: '#0d47a1',  // eau
-            7: '#f0f0f0',  // sacrée
+            20: '#f0f0f0',  // sacrée
+            21: '#424242',  // bloc seul
         };
         const TILE_BORDER = {
             0: '#4a3e2e',
             1: '#2a2a50',
             2: '#1565c0',
-            7: '#d4af37',
+            20: '#d4af37',
+            21: '#555555',
         };
         const ENTITY_RENDER = {
             springU: { bg: '#2e1e0a', fill: '#e67e22', label: '⇑' },
@@ -629,11 +605,13 @@
         };
         const TOOL_LABELS = {
             floor: 'Sol', wall: 'Mur', water: 'Eau', sacred: 'Case Sacrée',
+            block_only: 'Bloc Uniquement',
             springU: 'Ressort Haut', springD: 'Ressort Bas',
             springL: 'Ressort Gauche', springR: 'Ressort Droite',
             mirrorA: 'Miroir /', mirrorB: 'Miroir \\',
             hammerU: 'Marteau Haut', hammerD: 'Marteau Bas',
             hammerL: 'Marteau Gauche', hammerR: 'Marteau Droite',
+            hammerCW: 'Marteau Horaire', hammerCCW: 'Marteau Anti-Horaire',
             enemy: 'Ennemi', player: 'Joueur', exit: 'Sortie',
             item: 'Éclat de Miroir', spawner: 'Spawner',
             statue: 'Bloc',
@@ -1032,35 +1010,59 @@
             }
 
             const data = GameLevels[num];
+            const gridData = data.mapData || data.grid;
+            
             // Remplir métadonnées
             document.getElementById('levelName').value = data.name || "";
-            document.getElementById('levelTip').value = data.tutorial_tip || "";
+            document.getElementById('levelTip').value = data.tutorial_tip || data.tip || "";
             document.getElementById('levelGems').value = data.gemsRequired || 0;
+            if (document.getElementById('levelGems')) {
+                document.getElementById('levelGems').value = data.gemsRequired || 0;
+            }
 
             // Redimensionner
-            document.getElementById('inp-w').value = data.mapData ? data.mapData[0].length : data.width;
-            document.getElementById('inp-h').value = data.mapData ? data.mapData.length : data.height;
+            if (gridData) {
+                document.getElementById('inp-w').value = gridData[0].length;
+                document.getElementById('inp-h').value = gridData.length;
+            } else {
+                document.getElementById('inp-w').value = data.width || 40;
+                document.getElementById('inp-h').value = data.height || 30;
+            }
             document.getElementById('btn-resize').click();
 
-            // Remplir (si format matriciel mapData)
-            if (data.mapData) {
+            // Remplir (si format matriciel mapData ou grid)
+            if (gridData) {
                 for (let r = 0; r < rows; r++) {
                     for (let c = 0; c < cols; c++) {
-                        const val = data.mapData[r][c];
-                        if (val <= 2 || val === 7) {
+                        if (r >= gridData.length || c >= gridData[0].length) {
+                            map[r][c] = TILE.FLOOR;
+                            entities[r][c] = null;
+                            continue;
+                        }
+                        const val = gridData[r][c];
+                        if (val <= 2) {
                             map[r][c] = val;
                             entities[r][c] = null;
                         } else {
                             map[r][c] = TILE.FLOOR;
                             let type = null;
+                            // Mapping conforme à game.js _loadLevel (étendu)
                             if (val === 3) type = 'enemy';
                             else if (val === 4) type = 'item';
                             else if (val === 5) type = 'player';
-                            else if (val === 6) type = 'exit';
-                            else if (val === 12) type = 'pressure_plate';
-                            else if (val === 13) type = 'spikes';
-                            else if (val === 14) type = 'plate_door';
-                            else if (val === 15) type = 'plate_spikes';
+                            else if (val === 6 || val === 8) type = 'exit';
+                            else if (val === 7 || val === 12 || val === 14) type = 'plate_door'; 
+                            else if (val === 13 || val === 15) type = 'plate_spikes';
+                            else if (val === 9) type = 'springU';
+                            else if (val === 10) type = 'hammerCW';
+                            else if (val === 11) type = 'pusher_enemy';
+                            else if (val === 16) type = 'spawner';
+                            else if (val === 17) type = 'mirrorA';
+                            else if (val === 18) type = 'mirrorB';
+                            else if (val === 19) type = 'statue';
+                            else if (val === 20) { map[r][c] = TILE.SACRED; type = null; }
+                            else if (val === 21) { map[r][c] = TILE.BLOCK_ONLY; type = null; }
+                            
                             entities[r][c] = type ? { type } : null;
                         }
                     }
@@ -1070,10 +1072,10 @@
                 map = data.map.map(row => [...row]);
                 data.entities.forEach(e => {
                     let type = e.type;
-                    if (type === 'spring') type = 'spring' + e.orientation;
-                    if (type === 'hammer') type = 'hammer' + e.orientation;
+                    if (type === 'spring') type = 'spring' + (e.orientation || 'U');
+                    if (type === 'hammer') type = 'hammer' + (e.orientation || 'CW');
                     if (type === 'mirror' || type === 'mirrorA') type = (e.orientation === '\\' ? 'mirrorB' : 'mirrorA');
-                    if (type === 'mirrorB' && e.orientation === '/') type = 'mirrorA'; // correction logic
+                    if (type === 'mirrorB' && e.orientation === '/') type = 'mirrorA'; 
                     if (e.y < rows && e.x < cols) entities[e.y][e.x] = { type };
                 });
             }
@@ -1114,6 +1116,10 @@
                             else if (e.type === 'spikes') matrixLevel.mapData[r][c] = 13;
                             else if (e.type === 'plate_door') matrixLevel.mapData[r][c] = 14;
                             else if (e.type === 'plate_spikes') matrixLevel.mapData[r][c] = 15;
+                            else if (e.type === 'spawner') matrixLevel.mapData[r][c] = 16;
+                            else if (e.type === 'mirrorA') matrixLevel.mapData[r][c] = 17;
+                            else if (e.type === 'mirrorB') matrixLevel.mapData[r][c] = 18;
+                            else if (e.type === 'statue') matrixLevel.mapData[r][c] = 19;
                             else matrixLevel.mapData[r][c] = t; 
                         } else {
                             matrixLevel.mapData[r][c] = t;
@@ -1132,16 +1138,19 @@
                 // Fonction de formatage personnalisé pour un niveau
                 function formatLevelForExport(level) {
                     if (!level) return "null";
+                    const grid = level.mapData || level.grid;
+                    if (!grid) return "null"; // Failsafe
+
                     let s = "{\n";
                     s += `        "level_id": ${level.level_id},\n`;
                     s += `        "name": ${JSON.stringify(level.name)},\n`;
-                    s += `        "tutorial_tip": ${JSON.stringify(level.tutorial_tip)},\n`;
+                    s += `        "tutorial_tip": ${JSON.stringify(level.tutorial_tip || level.tip || "")},\n`;
                     s += `        "mapData": [\n`;
-                    level.mapData.forEach((row, rIdx) => {
-                        s += `            [${row.join(', ')}]${rIdx < level.mapData.length - 1 ? ',' : ''}\n`;
+                    grid.forEach((row, rIdx) => {
+                        s += `            [${row.join(', ')}]${rIdx < grid.length - 1 ? ',' : ''}\n`;
                     });
                     s += `        ],\n`;
-                    s += `        "gemsRequired": ${level.gemsRequired}\n`;
+                    s += `        "gemsRequired": ${level.gemsRequired || 0}\n`;
                     s += "    }";
                     return s;
                 }

@@ -207,13 +207,14 @@ class GameScene extends Phaser.Scene {
     this.itemsTotal = 0;
     this._victoryShown = false;
     this.levelName = data.name || `NIVEAU ${this.currentLevelNumber}`;
-    this.tutorialTip = data.tutorial_tip || "";
+    this.tutorialTip = data.tutorial_tip || data.tip || "";
 
     // ── Dimensions ──────────────────────────────────────────────────────────
-    if (data.mapData) {
+    const gridData = data.mapData || data.grid;
+    if (gridData) {
       // Format matriciel (User)
-      GRID_ROWS = data.mapData.length;
-      GRID_COLS = data.mapData[0].length;
+      GRID_ROWS = gridData.length;
+      GRID_COLS = gridData[0].length;
     } else {
       // Format original
       GRID_COLS = data.width || 20;
@@ -231,25 +232,43 @@ class GameScene extends Phaser.Scene {
     // ── Construction de la carte et des entités ─────────────────────────────
     let playerSpawn = { x: 1, y: 1 };
 
-    if (data.mapData) {
-      // Parsing du matriciel : 0=sol, 1=mur, 2=eau, 3=ennemi, 4=gemme, 5=joueur, 6=porte
+    if (gridData) {
+      // Parsing du matriciel : 0=sol, 1=mur, 2=eau, 3=ennemi, 4=gemme, 5=joueur, 6=porte, 7=plaque, 8=porte(alt), 9=ressort, 10=marteau, 11=pousseur
       this.map = [];
       for (let r = 0; r < GRID_ROWS; r++) {
         this.map[r] = [];
         for (let c = 0; c < GRID_COLS; c++) {
-          const val = data.mapData[r][c];
-          if (val <= 2 || val === 7 || val === 8) {
+          const val = gridData[r][c];
+          if (val <= 2 || val === 20 || val === 21) { // 0, 1, 2 sont des tuiles, 20=sacrée, 21=bloc uniquement
             this.map[r][c] = val;
           } else {
-            this.map[r][c] = TILE.FLOOR;
+            this.map[r][c] = TILE.FLOOR; // Par défaut, sol sous une entité
             if (val === 3) this.enemies.push(new Enemy(this, c, r));
             else if (val === 4) this.items.push(new Item(this, c, r));
             else if (val === 5) playerSpawn = { x: c, y: r };
-            else if (val === 6) this.exitDoor = new ExitDoor(this, c, r);
-            else if (val === 12) this.pressurePlates.push(new PressurePlate(this, c, r));
+            else if (val === 6 || val === 8) this.exitDoor = new ExitDoor(this, c, r);
+            else if (val === 7 || val === 12 || val === 14) this.pressurePlates.push(new PressurePlate(this, c, r, { target: 'ExitDoor' }));
+            else if (val === 13 || val === 15) this.pressurePlates.push(new PressurePlate(this, c, r, { target: 'Spikes' }));
             else if (val === 13) this.spikes.push(new Spikes(this, c, r));
-            else if (val === 14) this.pressurePlates.push(new PressurePlate(this, c, r, { target: 'ExitDoor' }));
-            else if (val === 15) this.pressurePlates.push(new PressurePlate(this, c, r, { target: 'Spikes' }));
+            else if (val === 9) {
+                // Orientation intelligente du ressort selon le bord
+                let orient = 'D';
+                if (r === 0) orient = 'D';
+                else if (r === GRID_ROWS - 1) orient = 'U';
+                else if (c === 0) orient = 'R';
+                else if (c === GRID_COLS - 1) orient = 'L';
+                this.springs.push(new Spring(this, c, r, orient));
+            }
+            else if (val === 10) this.spinners.push(new HammerSpinner(this, c, r, 'CW'));
+            else if (val === 11) this.enemies.push(new PusherEnemy(this, c, r));
+            else if (val === 16) this.spawners.push(new Spawner(this, c, r));
+            else if (val === 17) this.mirrors.push(new Mirror(this, c, r, '/'));
+            else if (val === 18) this.mirrors.push(new Mirror(this, c, r, '\\'));
+            else if (val === 19) {
+                const enemy = new Enemy(this, c, r);
+                enemy.petrify();
+                this.enemies.push(enemy);
+            }
           }
         }
       }
@@ -317,6 +336,18 @@ class GameScene extends Phaser.Scene {
     }
     this.itemsCollected = 0;
     if (this.itemsTotal === 0 && this.exitDoor) this.exitDoor.open();
+
+    // ── LIAISON SPAWNER-ENNEMI ───────────────────────────────────────────
+    // Si un ennemi est placé adjacente à un spawner, ils sont liés.
+    for (const spawner of this.spawners) {
+      for (const enemy of this.enemies) {
+        const dist = Math.abs(spawner.gridX - enemy.gridX) + Math.abs(spawner.gridY - enemy.gridY);
+        if (dist === 1) { // Adjacence cardinale
+          spawner.setInitialEnemy(enemy);
+          break; // Un ennemi par spawner suffit pour définir la règle
+        }
+      }
+    }
 
     // Créer le joueur en dernier (depth supérieure)
     this.player = new Player(this, playerSpawn.x, playerSpawn.y);

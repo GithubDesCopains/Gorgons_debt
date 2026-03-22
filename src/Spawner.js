@@ -12,9 +12,12 @@ class Spawner {
     this.gridX = gridX;
     this.gridY = gridY;
     this.currentEnemy = null;
+    this.spawnOffsetX = 0;
+    this.spawnOffsetY = 1; // Par défaut : juste en dessous
     this._checkTimer = null;
 
     const p = gridToPixel(gridX, gridY);
+
     // ── Image de la ruine (Spawner) ─────────────────────────────────────────
     this.gfx = scene.add.sprite(p.x, p.y, 'spawner_ruins');
     this.gfx.setDisplaySize(TILE_SIZE, TILE_SIZE);
@@ -27,6 +30,15 @@ class Spawner {
 
     // Premier check : pas de délai initial
     this._scheduleCheck(500);
+  }
+
+  /**
+   * Lie un ennemi initial et définit la direction de spawn future.
+   */
+  setInitialEnemy(enemy) {
+    this.currentEnemy = enemy;
+    this.spawnOffsetX = enemy.gridX - this.gridX;
+    this.spawnOffsetY = enemy.gridY - this.gridY;
   }
 
   // ── Logique de vérification ─────────────────────────────────────────────────
@@ -58,9 +70,15 @@ class Spawner {
   // ── Animation d'invocation ──────────────────────────────────────────────────
 
   _summonEffect() {
-    const targetY = this.gridY + 1;
-    // Vérifier si la case DEVANT le spawner est libre pour invoquer
-    if (targetY >= GRID_ROWS || this.scene.map[targetY]?.[this.gridX] === TILE.WALL || this.scene.map[targetY]?.[this.gridX] === TILE.WATER || this.scene.map[targetY]?.[this.gridX] === TILE.SACRED) {
+    const targetX = this.gridX + this.spawnOffsetX;
+    const targetY = this.gridY + this.spawnOffsetY;
+
+    // Vérifier si la case cible est libre pour invoquer
+    if (targetX < 0 || targetX >= GRID_COLS || targetY < 0 || targetY >= GRID_ROWS || 
+        this.scene.map[targetY]?.[targetX] === TILE.WALL || 
+        this.scene.map[targetY]?.[targetX] === TILE.WATER || 
+        this.scene.map[targetY]?.[targetX] === TILE.SACRED ||
+        this.scene.map[targetY]?.[targetX] === TILE.BLOCK_ONLY) {
       // Case bloquée → réessayer plus tard
       this._scheduleCheck(2000);
       return;
@@ -74,8 +92,9 @@ class Spawner {
         const ring = this.scene.add.graphics();
         ring.lineStyle(3, 0x220022, 0.8);
         ring.strokeCircle(0, 0, 12);
-        ring.setPosition(p.x, p.y + 12); // Positionné vers l'entrée (en bas de la case)
-        ring.setDepth(11); // Passe devant le spawner (9) et l'ennemi (10)
+        // Positionné vers l'entrée selon l'offset
+        ring.setPosition(p.x + this.spawnOffsetX * 12, p.y + this.spawnOffsetY * 12); 
+        ring.setDepth(11);
         this.scene.tweens.add({
           targets: ring,
           scaleX: 2.5,
@@ -89,23 +108,26 @@ class Spawner {
     }
 
     // Créer l'ennemi pendant l'animation du portail
-    this.scene.time.delayedCall(300, () => this._spawnEnemy(targetY));
+    this.scene.time.delayedCall(300, () => this._spawnEnemy(targetX, targetY));
   }
 
-  _spawnEnemy(targetY) {
+  _spawnEnemy(targetX, targetY) {
     // Revérifier au cas où la case aurait été occupée entre-temps
-    if (this.scene.map[targetY]?.[this.gridX] === TILE.WALL || this.scene.map[targetY]?.[this.gridX] === TILE.WATER || this.scene.map[targetY]?.[this.gridX] === TILE.SACRED) {
+    if (this.scene.map[targetY]?.[targetX] === TILE.WALL || 
+        this.scene.map[targetY]?.[targetX] === TILE.WATER || 
+        this.scene.map[targetY]?.[targetX] === TILE.SACRED ||
+        this.scene.map[targetY]?.[targetX] === TILE.BLOCK_ONLY) {
       this._scheduleCheck(1000);
       return;
     }
 
-    const enemy = new Enemy(this.scene, this.gridX, targetY);
+    const enemy = new Enemy(this.scene, targetX, targetY);
     this.scene.enemies.push(enemy);
     this.currentEnemy = enemy;
 
-    // Apparition dramatique : sort de la ruine (glisse vers le bas)
+    // Apparition dramatique : sort de la ruine (glisse vers la cible)
     const startP = gridToPixel(this.gridX, this.gridY);
-    const endP = gridToPixel(this.gridX, targetY);
+    const endP = gridToPixel(targetX, targetY);
 
     enemy.gfx.setPosition(startP.x, startP.y);
     enemy.gfx.setScale(0.5);
