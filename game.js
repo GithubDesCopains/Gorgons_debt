@@ -605,7 +605,7 @@ class GameScene extends Phaser.Scene {
         if (this.mirrors?.some(m => m.gridX === tx && m.gridY === ty)) isUnbreakable = true;
         if (this.exitDoor?.gridX === tx && this.exitDoor?.gridY === ty && !this.exitDoor.isOpen) isUnbreakable = true;
         
-        // Note: TILE.BLOCK_ONLY (8) n'est PAS unbreakable, donc la statue peut passer dessus.
+        // Note: TILE.BLOCK_ONLY (21) n'est PAS unbreakable, donc la statue peut passer dessus.
 
         if (isUnbreakable) {
           destX = tx - dx;

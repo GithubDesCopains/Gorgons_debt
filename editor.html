@@ -792,7 +792,8 @@
                 map[r][c] = tool === 'floor' ? TILE.FLOOR
                     : tool === 'wall' ? TILE.WALL
                         : tool === 'water' ? TILE.WATER
-                            : TILE.SACRED;
+                            : tool === 'block_only' ? TILE.BLOCK_ONLY
+                                : TILE.SACRED;
             }
             drawCell(c, r);
         }
